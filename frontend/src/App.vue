@@ -1,42 +1,70 @@
 <template>
-  <div id="app">
+  <div class="container">
     <header>
-      <nav class="nav">
-        <router-link to="/">홈</router-link>
-        <router-link to="/search">선수 검색</router-link>
-        <router-link to="/rank">순위표</router-link>
-        <router-link to="/guide">가이드</router-link>
+      <h1 class="title">Football in one</h1>
+      <nav class="main-nav">
+        <router-link to="/" class="nav-btn" exact-active-class="active">홈</router-link>
+        <router-link to="/rank" class="nav-btn" active-class="active">순위표</router-link>
+        <router-link to="/search" class="nav-btn" active-class="active">팀 / 선수 검색</router-link>
+        <router-link to="/schedule" class="nav-btn" active-class="active">경기 일정</router-link>
+        <router-link to="/guide" class="nav-btn" active-class="active">가이드</router-link>
       </nav>
     </header>
 
-    <main class="main-content">
-      <router-view />
-    </main>
+    <router-view />
+
   </div>
 </template>
 
-<script setup>
-</script>
-
 <style scoped>
-.nav {
+.container {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  padding-top: 1px;
+  width: 100%;
+  max-width: 1200px; 
+  text-align: center;
+}
+
+.title {
+  font-size: 48px;
+  color: white;
+  margin-bottom: 20px;
+}
+
+.main-nav {
   display: flex;
-  gap: 1rem;
-  background-color: #222;
-  padding: 1rem;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 30px;
 }
 
-.nav a {
-  color: #fff;
-  text-decoration: none;
+.nav-btn {
+  background: transparent;
+  border: 2px solid #42f57b;
+  color: #42f57b;
   font-weight: bold;
+  font-size: 18px;
+  padding: 10px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
 }
 
-.nav a.router-link-active {
-  text-decoration: underline;
+.nav-btn:hover {
+  background: #42f57b;
+  color: #111;
+}
+
+.nav-btn.active {
+  background: #42f57b;
+  color: #111;
 }
 
 .main-content {
-  padding: 2rem;
+  font-size: 20px;
+  color: white;
 }
 </style>

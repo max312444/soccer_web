@@ -1,45 +1,70 @@
 <template>
-  <div class="search">
-    <h2>선수 검색</h2>
-    <input v-model="query" placeholder="선수 이름을 입력하세요" />
-    <button @click="search">검색</button>
+    <div class="search-container">
+        <h2>팀 / 선수 검색</h2>
 
-    <div v-if="results.length">
-      <h3>검색 결과</h3>
-      <ul>
-        <li v-for="player in results" :key="player.name">
-          {{ player.name }} - {{ player.team }}
-        </li>
-      </ul>
+        <input v-model="query" @input="search" type="text" placeholder="팀명 혹은 선수명을 입력하세요" class="search-input"/>
+
+        <div class="results">
+            <div class="result-card" v-for="result in results" :key="result.id">
+                <h3>{{ result.name }}</h3>
+                <p>{{ result.type }} - {{ result.team }}</p>
+            </div>
+        </div>
     </div>
-  </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref } from 'vue'
 
-const query = ref("");
-const results = ref([]);
+const query = ref('')
+
+const mockData = [
+    { id: 1, name: '손흥민', type: '선수', team: '토트넘'},
+    { id: 2, name: '박지성', type: '선수', team: '맨유'},
+    { id: 3, name: '비르츠', type: '선수', team: '리버풀'},
+]
+
+const result = ref([])
 
 const search = () => {
-  // 목 데이터
-  const dummyData = [
-  { name: "손흥민", team: "토트넘" },
-  { name: "김민재", team: "뮌헨" },
-];
-
-  results.value = dummyData.filter(player =>
-    player.name.includes(query.value)
-  );
-};
+    if(!query.value.trim()) {
+        results.value = []
+        return
+    }
+    const lower = query.value.toLowerCase()
+    results.value = mockData.filter(
+        item =>
+            item.name.toLowerCase().includes(lower) ||
+            item.team.toLowerCase().includes(lower)
+    )
+}
 </script>
 
 <style scoped>
-.search {
-  padding: 1rem;
+.search-container {
+    padding: 20px;
+    color: white;
+    text-align: center;
 }
-input {
-  margin-right: 0.5rem;
-  padding: 0.5rem;
+.search-input {
+    padding: 10px;
+    width: 60%;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    margin: 20px 0;
+}
+.results {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+.result-card {
+    background: #222;
+    border: 1px solid #42f57b;
+    border-radius: 10px;
+    padding: 12px 20px;
+    width: 60%;
 }
 </style>

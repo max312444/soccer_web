@@ -1,0 +1,15 @@
+/* style.css */
+body {
+  margin: 0;
+  padding: 0;
+  background: #111;
+  font-family: sans-serif;
+}
+
+#app {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;         /* 전체 높이 */
+  width: 100vw;          /* 전체 너비 */
+}
