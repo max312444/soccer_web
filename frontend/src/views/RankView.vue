@@ -37,7 +37,7 @@
 <script setup>
 import { ref } from 'vue'
 
-const leagues = ['EPL', '라리가', '세리에 A', '분데스리가', '프랑스 리그1', '에레디비시', 'K 리그1']
+const leagues = ['EPL', '라리가', '세리에A', '분데스리가', '프랑스 리그1', '에레디비시', 'K 리그1']
 const selectedLeague = ref('EPL')
 
 const leagueTable = {
