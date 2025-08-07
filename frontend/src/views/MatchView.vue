@@ -1,5 +1,5 @@
 <template>
-  <div class="schedule-wrapper">
+  <div class="match-wrapper">
     <!-- 왼쪽: 홈 팀 라인업 -->
     <div class="lineup-panel">
       <h3>홈팀 라인업</h3>
@@ -129,7 +129,7 @@ fetchMatches()
 </script>
 
 <style scoped>
-.schedule-wrapper {
+.match-wrapper {
   display: flex;
   justify-content: space-between;
   gap: 16px;

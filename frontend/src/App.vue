@@ -11,7 +11,7 @@
       </nav>
     </header>
 
-    <router-view />
+    <router-view /> <!-- 이거 없으면 불러올 수 없으니 반드시 넣을 것 -->
 
   </div>
 </template>
