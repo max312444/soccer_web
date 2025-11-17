@@ -1,70 +1,178 @@
 <template>
-    <div class="search-container">
-        <h2>팀 / 선수 검색</h2>
+  <div class="search-container">
+    <h2>팀 / 선수 검색</h2>
 
-        <input v-model="query" @input="search" type="text" placeholder="팀명 혹은 선수명을 입력하세요" class="search-input"/>
+    <div class="search-bar">
+      <!-- 검색 타입 선택 -->
+      <select v-model="searchType" class="select-box">
+        <option value="both">전체 검색</option>
+        <option value="team">팀 검색</option>
+        <option value="player">선수 검색</option>
+      </select>
 
-        <div class="results">
-            <div class="result-card" v-for="result in results" :key="result.id">
-                <h3>{{ result.name }}</h3>
-                <p>{{ result.type }} - {{ result.team }}</p>
-            </div>
-        </div>
+      <!-- 검색 입력 -->
+      <input
+        v-model="query"
+        type="text"
+        placeholder="팀명 혹은 선수명을 입력하세요"
+        class="search-input"
+      />
+
+      <!-- 검색 버튼 -->
+      <button class="search-btn" @click="search">
+        🔍
+      </button>
     </div>
+
+    <!-- 결과 없음 -->
+    <p v-if="results.length === 0 && searched" class="no-results">
+      검색 결과가 없습니다.
+    </p>
+
+    <!-- 검색 결과 -->
+    <div class="results">
+      <div 
+        class="result-card" 
+        v-for="item in results" 
+        :key="item.key"
+        @click="goDetail(item)"
+      >
+        <img :src="item.logo" width="50" />
+        <h3>{{ item.name }}</h3>
+        <p>{{ item.sub }}</p>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref } from "vue";
+import { useRouter } from "vue-router";
 
-const query = ref('')
+const router = useRouter();
 
-const mockData = [
-    { id: 1, name: '손흥민', type: '선수', team: '토트넘'},
-    { id: 2, name: '박지성', type: '선수', team: '맨유'},
-    { id: 3, name: '비르츠', type: '선수', team: '리버풀'},
-]
+const query = ref("");
+const results = ref([]);
+const searched = ref(false);
+const searchType = ref("both"); // 기본 전체 검색
 
-const result = ref([])
+const search = async () => {
+  searched.value = true;
 
-const search = () => {
-    if(!query.value.trim()) {
-        results.value = []
-        return
-    }
-    const lower = query.value.toLowerCase()
-    results.value = mockData.filter(
-        item =>
-            item.name.toLowerCase().includes(lower) ||
-            item.team.toLowerCase().includes(lower)
-    )
-}
+  if (!query.value.trim()) {
+    results.value = [];
+    return;
+  }
+
+  let finalResults = [];
+
+  // 팀 검색
+  if (searchType.value === "team" || searchType.value === "both") {
+    const teamRes = await fetch(`/api/soccer/teams?name=${query.value}`);
+    const teamData = await teamRes.json();
+
+    const teamResults = (teamData.response || []).map(t => ({
+      key: "team-" + t.team.id,
+      id: t.team.id,
+      name: t.team.name,
+      logo: t.team.logo,
+      sub: `팀 | ${t.team.country}`,
+      type: "team"
+    }));
+
+    finalResults.push(...teamResults);
+  }
+
+  // 선수 검색
+  if (searchType.value === "player" || searchType.value === "both") {
+    const playerRes = await fetch(`/api/soccer/players?name=${query.value}`);
+    const playerData = await playerRes.json();
+
+    const playerResults = (playerData.response || []).map(p => ({
+      key: "player-" + p.player.id,
+      id: p.player.id,
+      name: p.player.name,
+      logo: p.player.photo,
+      sub: `선수 | ${p.statistics?.[0]?.team?.name ?? "소속팀 없음"}`,
+      type: "player"
+    }));
+
+    finalResults.push(...playerResults);
+  }
+
+  results.value = finalResults;
+};
+
+// 상세 페이지 이동
+const goDetail = (item) => {
+  if (item.type === "team") {
+    router.push(`/team/${item.id}`);
+  } else {
+    router.push(`/player/${item.id}`);
+  }
+};
 </script>
 
 <style scoped>
 .search-container {
-    padding: 20px;
-    color: white;
-    text-align: center;
+  padding: 20px;
+  color: white;
+  text-align: center;
 }
+
+.search-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+}
+
+.select-box {
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 16px;
+}
+
 .search-input {
-    padding: 10px;
-    width: 60%;
-    border-radius: 8px;
-    border: none;
-    font-size: 16px;
-    margin: 20px 0;
+  padding: 10px;
+  width: 45%;
+  border-radius: 8px;
+  border: none;
+  font-size: 16px;
 }
+
+.search-btn {
+  padding: 10px 15px;
+  background: #42f57b;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.no-results {
+  margin-top: 20px;
+  color: #aaa;
+}
+
 .results {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 12px;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
+
 .result-card {
-    background: #222;
-    border: 1px solid #42f57b;
-    border-radius: 10px;
-    padding: 12px 20px;
-    width: 60%;
+  background: #222;
+  border: 1px solid #42f57b;
+  border-radius: 10px;
+  padding: 12px 20px;
+  width: 60%;
+  text-align: left;
+  cursor: pointer;
+}
+.result-card img {
+  border-radius: 6px;
+  margin-bottom: 8px;
 }
 </style>

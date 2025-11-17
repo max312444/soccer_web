@@ -28,7 +28,7 @@ router.post("/signup", async (req, res) => {
 
   try {
     // 이메일 중복 체크
-    const existing = db.prepare("SELECT * FROM users WHERE email = ?").get(mail);
+    const existing = db.prepare("SELECT * FROM users WHERE email = ?").get(email);
     if (existing) {
       return res.status(400).json({ error: "이미 존재하는 이메일입니다."});
     }
