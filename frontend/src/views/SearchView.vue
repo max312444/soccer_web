@@ -66,9 +66,11 @@ const search = async () => {
 
   let finalResults = [];
 
-  // 팀 검색
+  /* =======================
+     1) 팀 검색
+     ======================= */
   if (searchType.value === "team" || searchType.value === "both") {
-    const teamRes = await fetch(`/api/soccer/teams?name=${query.value}`);
+    const teamRes = await fetch(`/soccer/teams?name=${query.value}`);
     const teamData = await teamRes.json();
 
     const teamResults = (teamData.response || []).map(t => ({
@@ -83,9 +85,11 @@ const search = async () => {
     finalResults.push(...teamResults);
   }
 
-  // 선수 검색
+  /* =======================
+     2) 선수 검색
+     ======================= */
   if (searchType.value === "player" || searchType.value === "both") {
-    const playerRes = await fetch(`/api/soccer/players?name=${query.value}`);
+    const playerRes = await fetch(`/soccer/players?name=${query.value}`);
     const playerData = await playerRes.json();
 
     const playerResults = (playerData.response || []).map(p => ({
@@ -103,7 +107,9 @@ const search = async () => {
   results.value = finalResults;
 };
 
-// 상세 페이지 이동
+/* ===========================
+   상세 페이지 이동
+   =========================== */
 const goDetail = (item) => {
   if (item.type === "team") {
     router.push(`/team/${item.id}`);

@@ -27,7 +27,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/favorites", favoritesRouter);
 app.use("/api/me", meRouter);
-app.use("/api/soccer", soccerRouter);
+app.use("/soccer", soccerRouter);
 
 // 서버 시작
 app.listen(PORT, () => {

@@ -97,4 +97,27 @@ router.get("/player/:id", async (req, res) => {
   }
 });
 
+// =======================================
+// 5) 팀 소속 선수 목록
+// =======================================
+router.get("/team/:id/players", async (req, res) => {
+  const id = req.params.id;
+
+  try {
+    const response = await api.get("/players", {
+      params: {
+        team: id,
+        league: 39,      // 프리미어리그 (팀 따라 자동조정 가능)
+        season: 2023,
+      },
+    });
+
+    res.json(response.data);
+  } catch (err) {
+    console.error("Team Players ERROR:", err.response?.data || err.message);
+    res.status(500).json({ error: "Team players error" });
+  }
+});
+
+
 module.exports = router;
