@@ -1,6 +1,10 @@
 <script setup>
+import { ref } from 'vue'
 import SideRanking from '../components/home_components/SideRanking.vue'
 import Login from '../components/home_components/Login.vue'
+import SignupForm from '../components/home_components/SignupForm.vue'
+
+const showSignup = ref(false)
 
 const dummyNews = [
   '손흥민, LAFC  Here we go!',
@@ -17,10 +21,21 @@ const dummyNews = [
 
 <template>
   <div class="home-wrapper">
+
+    <!-- 왼쪽 로그인 / 회원가입 박스 -->
     <aside class="left-panel">
-      <Login />
+      <Login 
+        v-if="!showSignup" 
+        @show-signup="showSignup = true" 
+      />
+
+      <SignupForm 
+        v-if="showSignup" 
+        @close="showSignup = false" 
+      />
     </aside>
 
+    <!-- 중앙 뉴스 패널 -->
     <main class="main-panel">
       <h2>뉴스 목록</h2>
       <ul>
@@ -28,9 +43,11 @@ const dummyNews = [
       </ul>
     </main>
 
+    <!-- 오른쪽 패널 -->
     <aside class="right-panel">
       <SideRanking />
     </aside>
+
   </div>
 </template>
 
@@ -57,34 +74,5 @@ const dummyNews = [
   background-color: #1a1a1a;
   padding: 10px;
   border-radius: 8px;
-}
-
-/* 버튼 그룹 */
-.btn-group {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.btn-group button {
-  padding: 10px;
-  border: none;
-  border-radius: 6px;
-  font-weight: bold;
-  cursor: pointer;
-}
-
-.btn-group button:first-of-type {
-  background-color: #50fa7b;
-  color: #111;
-}
-
-.signup-btn {
-  background-color: #444;
-  color: white;
-}
-.signup-btn:hover {
-  background-color: #666;
 }
 </style>

@@ -1,13 +1,16 @@
 <template>
-  <div class="login-form">
-    <div class="team-logo"></div>
+  <div class="signup-form">
     <h3>로그인</h3>
+
     <input type="text" v-model="username" placeholder="아이디" />
     <input type="password" v-model="password" placeholder="비밀번호" />
-    <button class="login-btn">로그인</button>
-    <p class="switch-text">
-      <button @click="$emit('show-signup')" class="link-btn">회원가입</button>
-    </p>
+
+    <button @click="login">로그인</button>
+
+    <!-- 회원가입 버튼 -->
+    <button class="sub-btn" @click="$emit('show-signup')">
+      회원가입
+    </button>
   </div>
 </template>
 
@@ -18,42 +21,39 @@ const username = ref('')
 const password = ref('')
 
 const login = () => {
-  console.log('로그인 시도:', username.value, password.value)
-  // 나중에 axios.post('/login', { username, password }) 붙이면 됨
+  console.log('로그인 정보:', username.value, password.value)
 }
 </script>
 
 <style scoped>
-.login-form {
+.signup-form {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background-color: #333;
+  background-color: #222;
   padding: 16px;
   border-radius: 8px;
   color: white;
 }
-
-.login-form input {
-  padding: 8px;
-  border: none;
+.signup-form input,
+.signup-form button {
+  padding: 10px;
   border-radius: 4px;
+  border: none;
 }
 
-.login-form button {
-  padding: 10px;
-  border: none;
+.signup-form button {
   background-color: #42f57b;
   color: #111;
   font-weight: bold;
-  border-radius: 6px;
   cursor: pointer;
 }
-.team-logo {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background-color: #888;
-  margin: 0 auto;
+
+/* 회원가입 버튼 (보조 버튼) */
+.sub-btn {
+  background-color: #444;
+  color: #ddd;
+  font-weight: normal;
+  margin-top: 5px;
 }
 </style>
