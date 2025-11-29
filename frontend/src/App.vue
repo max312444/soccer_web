@@ -1,7 +1,16 @@
 <template>
   <div class="container">
     <header>
-      <h1 class="title">Football in one</h1>
+      <div class="header-top">
+        <h1 class="title" @click="$router.push('/')">Football in one</h1>
+        <div class="user-actions">
+          <div v-if="isLoggedIn" class="user-info">
+            <span>{{ userName }}님, 환영합니다!</span>
+            <button @click="handleLogout" class="auth-btn">로그아웃</button>
+          </div>
+          <router-link v-else to="/login" class="auth-btn">로그인</router-link>
+        </div>
+      </div>
       <nav class="main-nav">
         <router-link to="/" class="nav-btn" exact-active-class="active">홈</router-link>
         <router-link to="/rank" class="nav-btn" active-class="active">순위표</router-link>
@@ -16,6 +25,24 @@
   </div>
 </template>
 
+<script setup>
+import { computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from './stores/auth';
+
+const router = useRouter();
+const authStore = useAuthStore();
+
+const isLoggedIn = computed(() => authStore.isLoggedIn);
+const userName = computed(() => authStore.user?.name);
+
+const handleLogout = () => {
+  authStore.logout();
+  alert('로그아웃 되었습니다.');
+  router.push('/');
+};
+</script>
+
 <style scoped>
 .container {
   position: absolute;
@@ -24,14 +51,50 @@
   transform: translateX(-50%);
   padding-top: 1px;
   width: 100%;
-  max-width: 1200px; 
+  max-width: 1200px;
   text-align: center;
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
 }
 
 .title {
   font-size: 48px;
   color: white;
-  margin-bottom: 20px;
+  cursor: pointer;
+  margin: 0;
+}
+
+.user-actions {
+  display: flex;
+  align-items: center;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  color: white;
+  font-size: 16px;
+}
+
+.auth-btn {
+  background: #444;
+  color: #ddd;
+  border: 1px solid #555;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+.auth-btn:hover {
+  background: #555;
 }
 
 .main-nav {
@@ -51,6 +114,7 @@
   border-radius: 10px;
   cursor: pointer;
   transition: background 0.3s, color 0.3s;
+  text-decoration: none;
 }
 
 .nav-btn:hover {

@@ -10,17 +10,17 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 
 // 1. 회원가입
 router.post("/signup", async (req, res) => {
-  const { email, password, name } = req.body;
+  const { username, password, name, preferred_club_id, preferred_club_name } = req.body;
 
   try {
-    // 이메일 중복 체크
+    // 아이디 중복 체크
     const [existing] = await pool.query(
-      "SELECT id FROM users WHERE email = ?",
-      [email]
+      "SELECT id FROM users WHERE username = ?",
+      [username]
     );
 
     if (existing.length > 0) {
-      return res.status(400).json({ error: "이미 존재하는 이메일입니다." });
+      return res.status(400).json({ error: "이미 존재하는 아이디입니다." });
     }
 
     // 비밀번호 해시
@@ -28,8 +28,8 @@ router.post("/signup", async (req, res) => {
 
     // DB 저장
     await pool.query(
-      "INSERT INTO users (email, password, name) VALUES (?, ?, ?)",
-      [email, hashed, name]
+      "INSERT INTO users (username, password, name, preferred_club_id, preferred_club_name) VALUES (?, ?, ?, ?, ?)",
+      [username, hashed, name, preferred_club_id, preferred_club_name]
     );
 
     return res.json({ message: "회원가입 성공" });
@@ -42,16 +42,16 @@ router.post("/signup", async (req, res) => {
 
 // 2. 로그인
 router.post("/login", async (req, res) => {
-  const { email, password } = req.body;
+  const { username, password } = req.body;
 
   try {
     const [rows] = await pool.query(
-      "SELECT * FROM users WHERE email = ?",
-      [email]
+      "SELECT * FROM users WHERE username = ?",
+      [username]
     );
 
     if (rows.length === 0)
-      return res.status(400).json({ error: "존재하지 않는 이메일입니다." });
+      return res.status(400).json({ error: "존재하지 않는 아이디입니다." });
 
     const user = rows[0];
 
@@ -62,7 +62,13 @@ router.post("/login", async (req, res) => {
 
     // JWT 발급
     const accessToken = jwt.sign(
-      { id: user.id, email: user.email, name: user.name },
+      { 
+        id: user.id, 
+        username: user.username, 
+        name: user.name,
+        preferred_club_id: user.preferred_club_id,
+        preferred_club_name: user.preferred_club_name
+      },
       JWT_ACCESS_SECRET,
       { expiresIn: "1h" }
     );
@@ -77,8 +83,10 @@ router.post("/login", async (req, res) => {
       message: "로그인 성공",
       user: {
         id: user.id,
-        email: user.email,
+        username: user.username,
         name: user.name,
+        preferred_club_id: user.preferred_club_id,
+        preferred_club_name: user.preferred_club_name
       },
       accessToken,
       refreshToken,
