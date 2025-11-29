@@ -1,10 +1,15 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import SideRanking from '../components/home_components/SideRanking.vue'
 import Login from '../components/home_components/Login.vue'
 import SignupForm from '../components/home_components/SignupForm.vue'
+import ProfileView from '../components/ProfileView.vue'
+import { useAuthStore } from '@/stores/auth'
 
+const authStore = useAuthStore()
 const showSignup = ref(false)
+
+const isLoggedIn = computed(() => authStore.isLoggedIn)
 
 const dummyNews = [
   '손흥민, LAFC  Here we go!',
@@ -22,17 +27,22 @@ const dummyNews = [
 <template>
   <div class="home-wrapper">
 
-    <!-- 왼쪽 로그인 / 회원가입 박스 -->
+    <!-- 왼쪽 프로필 또는 로그인/회원가입 박스 -->
     <aside class="left-panel">
-      <Login 
-        v-if="!showSignup" 
-        @show-signup="showSignup = true" 
-      />
+      <!-- 로그인 상태일 때 프로필 표시 -->
+      <ProfileView v-if="isLoggedIn" />
 
-      <SignupForm 
-        v-if="showSignup" 
-        @close="showSignup = false" 
-      />
+      <!-- 로그아웃 상태일 때 로그인/회원가입 표시 -->
+      <template v-else>
+        <Login 
+          v-if="!showSignup" 
+          @show-signup="showSignup = true" 
+        />
+        <SignupForm 
+          v-if="showSignup" 
+          @close="showSignup = false" 
+        />
+      </template>
     </aside>
 
     <!-- 중앙 뉴스 패널 -->

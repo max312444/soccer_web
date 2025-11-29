@@ -22,6 +22,7 @@ const authRouter = require("./routes/auth");
 const favoritesRouter = require("./routes/favorites");
 const meRouter = require("./routes/me");
 const soccerRouter = require("./routes/soccer");
+const newsRouter = require("./routes/news");
 
 // 상태 체크용 엔드포인트
 app.get("/", (req, res) => {
@@ -35,6 +36,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/favorites", favoritesRouter);
 app.use("/api/me", meRouter);
 app.use("/api/soccer", soccerRouter);
+app.use("/api/news", newsRouter);
 
 // ---------------------
 // 서버 시작

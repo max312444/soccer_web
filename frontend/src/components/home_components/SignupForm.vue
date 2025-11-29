@@ -65,11 +65,9 @@ const searchTeams = async () => {
   try {
     const res = await fetch(`http://localhost:7070/api/soccer/teams?name=${searchTerm.value}`);
     const data = await res.json();
-    if (res.ok && data.response) {
-      searchResults.value = data.response.map(team => ({
-        id: team.team.id,
-        name: team.team.name
-      }));
+    if (res.ok && Array.isArray(data)) {
+      // The backend now returns a simple array of teams, no transformation needed.
+      searchResults.value = data;
     } else {
       searchResults.value = [];
     }
