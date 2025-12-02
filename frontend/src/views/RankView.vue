@@ -2,20 +2,16 @@
   <div class="table-box">
     <h2>리그별 순위표</h2>
     <div class="controls">
-      <select v-model="selectedLeague" @change="fetchStandings">
+      <select v-model="selectedLeague" @change="onLeagueChange">
         <option v-for="league in leagues" :key="league.id" :value="league.id">
           {{ league.name }}
-        </option>
-      </select>
-      <select v-model="selectedSeason" @change="fetchStandings">
-        <option v-for="season in seasons" :key="season" :value="season">
-          {{ season }}
         </option>
       </select>
     </div>
 
     <div v-if="loading" class="loading">불러오는 중...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
+
     <table v-else-if="standings" class="ranking-table">
       <thead>
         <tr>
@@ -45,6 +41,7 @@
         </tr>
       </tbody>
     </table>
+
     <div v-else class="no-data">순위 정보를 불러올 수 없습니다.</div>
   </div>
 </template>
@@ -56,53 +53,90 @@ const standings = ref(null);
 const loading = ref(true);
 const error = ref(null);
 
-// Common leagues with their IDs from API-FOOTBALL
 const leagues = ref([
   { id: 'PL', name: 'Premier League (잉글랜드)' },
   { id: 'PD', name: 'La Liga (스페인)' },
   { id: 'SA', name: 'Serie A (이탈리아)' },
   { id: 'BL1', name: 'Bundesliga (독일)' },
   { id: 'FL1', name: 'Ligue 1 (프랑스)' },
-  // K League 1은 football-data.org에 직접적인 코드 없음.
-  // 추후 다른 API 연동 또는 수동 관리 필요
-  { id: 'KOR', name: 'K League 1 (대한민국) - 지원되지 않음' }, // placeholder for K League
 ]);
 
-// Available seasons
-const seasons = ref([2023, 2022, 2021, 2020]);
+// 시즌 목록은 API에서 가져온 최신 시즌을 포함해 동적으로 구성됨
+const seasons = ref([]);
 
-const selectedLeague = ref('PL'); // Default to Premier League (PL)
-const selectedSeason = ref(2023); // Default to 2023 season
+const selectedLeague = ref('PL');
+const selectedSeason = ref(null); // 동적 설정(기본값 없음)
 
-const fetchStandings = async () => {
+// 1) league 변경 시 최신 시즌 다시 불러오기
+const onLeagueChange = async () => {
+  await loadCurrentSeason();
+};
+
+// 2) 현재 시즌 & 시즌 목록 가져오기
+const loadCurrentSeason = async () => {
   loading.value = true;
-  error.value = null;
-  standings.value = null;
 
   try {
-    const res = await fetch(`http://localhost:7070/api/soccer/standings?league=${selectedLeague.value}&season=${selectedSeason.value}`);
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.error || "서버에서 순위 정보를 가져오는데 실패했습니다.");
-    }
+    const res = await fetch(
+      `http://localhost:7070/api/soccer/competition?league=${selectedLeague.value}`
+    );
+
+    if (!res.ok) throw new Error("현재 시즌 정보를 가져오지 못했습니다.");
+
     const data = await res.json();
-    
-    if (Array.isArray(data) && data.length > 0) {
-      standings.value = data;
-    } else {
-      throw new Error("해당 리그의 순위 정보가 없습니다.");
-    }
+
+    // 현재 시즌 연도 추출
+    const startYear = Number(data.currentSeason.startDate.split("-")[0]);
+
+
+    // 자동으로 최신 시즌 선택
+    selectedSeason.value = startYear;
+
+    // 최신 시즌에 맞춰 standings 불러오기
+    fetchStandings();
 
   } catch (err) {
-    console.error("순위 정보 로딩 실패:", err);
+    console.error(err);
     error.value = err.message;
   } finally {
     loading.value = false;
   }
 };
 
-// Fetch standings when the component is first mounted
-onMounted(fetchStandings);
+// 3) 실제 순위표 불러오기
+const fetchStandings = async () => {
+  if (!selectedSeason.value) return; // 시즌 선택 전이면 실행 막기
+
+  loading.value = true;
+  error.value = null;
+
+  try {
+    const res = await fetch(
+      `http://localhost:7070/api/soccer/standings?league=${selectedLeague.value}&season=${selectedSeason.value}`
+    );
+
+    if (!res.ok) throw new Error("순위 정보를 가져오지 못했습니다.");
+
+    const data = await res.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+      throw new Error("해당 시즌의 순위 정보가 없습니다.");
+    }
+
+    standings.value = data;
+
+  } catch (err) {
+    console.error(err);
+    error.value = err.message;
+  } finally {
+    loading.value = false;
+  }
+};
+
+// 4) 페이지 로드시 실행
+onMounted(async () => {
+  await loadCurrentSeason(); // 최신 시즌 자동 설정
+});
 </script>
 
 <style scoped>
