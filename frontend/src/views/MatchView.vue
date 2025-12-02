@@ -1,19 +1,25 @@
 <template>
   <div class="match-wrapper">
-    <!-- 왼쪽: 홈팀 라인업 -->
+    <!-- 왼쪽: 홈 라인업 -->
     <div class="lineup-panel">
       <h3>홈팀 라인업</h3>
-      <div v-if="selectedMatch">
-        <p class="team-name">{{ selectedMatch.teams.home.name }}</p>
 
-        <ul>
-          <li v-for="player in homeLineup" :key="player.id" class="player-item">
+      <div v-if="homeLineup">
+        <p class="team-name">{{ homeLineup.team?.name }}</p>
+
+        <ul v-if="homeLineup.startXI">
+          <li 
+            v-for="player in homeLineup.startXI" 
+            :key="player.id" 
+            class="player-item"
+          >
             <img :src="player.photo" class="face" />
             <span class="name">{{ player.name }}</span>
             <span class="pos">{{ player.pos }}</span>
           </li>
         </ul>
       </div>
+
       <p v-else>경기를 선택해주세요</p>
     </div>
 
@@ -33,7 +39,7 @@
         </select>
       </div>
 
-      <!-- 주차 이동 버튼 -->
+      <!-- 주차 이동 -->
       <div class="week-selector">
         <button class="arrow-btn" @click="prevWeek">◀ 이전 주</button>
         <span class="date-range">{{ formatDateRange(currentWeek) }}</span>
@@ -47,7 +53,7 @@
         class="match-card"
         @click="selectMatch(match)"
       >
-        <!-- 경기 날짜/시간 -->
+        <!-- 날짜/시간 -->
         <div class="match-date">
           {{ formatMatchTime(match.fixture.date) }}
         </div>
@@ -63,9 +69,7 @@
             <template v-if="match.goals.home !== null">
               {{ match.goals.home }} : {{ match.goals.away }}
             </template>
-            <template v-else>
-              vs
-            </template>
+            <template v-else>vs</template>
           </span>
 
           <div class="team">
@@ -76,18 +80,26 @@
       </div>
     </div>
 
-    <!-- 오른쪽: 원정팀 라인업 -->
+    <!-- 오른쪽: 원정 라인업 -->
     <div class="lineup-panel">
       <h3>원정팀 라인업</h3>
-      <div v-if="selectedMatch">
-        <p class="team-name">{{ selectedMatch.teams.away.name }}</p>
 
-        <ul>
-          <li v-for="player in awayLineup" :key="player.id" class="player-item">
-            • {{ player.name }}
+      <div v-if="awayLineup">
+        <p class="team-name">{{ awayLineup.team?.name }}</p>
+
+        <ul v-if="awayLineup.startXI">
+          <li 
+            v-for="player in awayLineup.startXI" 
+            :key="player.id" 
+            class="player-item"
+          >
+            <img :src="player.photo" class="face" />
+            <span class="name">{{ player.name }}</span>
+            <span class="pos">{{ player.pos }}</span>
           </li>
         </ul>
       </div>
+
       <p v-else>경기를 선택해주세요</p>
     </div>
   </div>
@@ -100,12 +112,13 @@ const selectedMatch = ref(null)
 const matches = ref([])
 
 const currentWeek = ref(new Date())
+const selectedLeague = ref("")   
 
-const selectedLeague = ref("")   // 추가된 상태 (리그 선택)
+// 백엔드에서 받아올 전체 라인업 객체
+const homeLineup = ref(null)
+const awayLineup = ref(null)
 
-const homeLineup = ref([])
-const awayLineup = ref([])
-
+// 날짜 포맷
 const formatDate = d => d.toISOString().split("T")[0]
 
 const formatMatchTime = (isoString) => {
@@ -132,47 +145,24 @@ const nextWeek = () => {
   fetchMatches()
 }
 
+// 경기 클릭 → 라인업 API 호출
 const selectMatch = async (match) => {
-  selectedMatch.value = match;
-
-  const fixtureId = match.fixture.id;
+  selectedMatch.value = match
+  const fixtureId = match.fixture.id
 
   try {
-    const res = await fetch(`http://localhost:7070/api/soccer/lineup/${fixtureId}`);
-    const lineup = await res.json();
+    const res = await fetch(`http://localhost:7070/api/soccer/lineup/${fixtureId}`)
+    const data = await res.json()
 
-    if (!Array.isArray(lineup) || lineup.length === 0) {
-      homeLineup.value = [];
-      awayLineup.value = [];
-      return;
-    }
+    homeLineup.value = data.home
+    awayLineup.value = data.away
 
-    // lineup[0] = 홈팀, lineup[1] = 원정팀
-    const home = lineup[0];
-    const away = lineup[1];
-
-    homeLineup.value = home.startXI.map(p => ({
-      id: p.player.id,
-      name: p.player.name,
-      number: p.player.number,
-      pos: p.player.pos,
-      photo: p.player.photo
-    }));
-
-    awayLineup.value = away.startXI.map(p => ({
-      id: p.player.id,
-      name: p.player.name,
-      number: p.player.number,
-      pos: p.player.pos,
-      photo: p.player.photo
-    }));
-
-  } catch (e) {
-    console.error("라인업 로딩 실패:", e);
+  } catch (err) {
+    console.error("라인업 로딩 실패:", err)
   }
-};
+}
 
-// API 연동
+// 경기 일정 API
 const fetchMatches = async () => {
   const start = new Date(currentWeek.value)
   const end = new Date(currentWeek.value)
@@ -181,14 +171,10 @@ const fetchMatches = async () => {
   const from = formatDate(start)
   const to = formatDate(end)
 
-  console.log("요청 날짜 범위:", from, to)
-
   const leagueParam = selectedLeague.value ? `&league=${selectedLeague.value}` : ""
 
   try {
-    const res = await fetch(
-      `http://localhost:7070/api/soccer/matches?from=${from}&to=${to}${leagueParam}`
-    )
+    const res = await fetch(`http://localhost:7070/api/soccer/matches?from=${from}&to=${to}${leagueParam}`)
     const data = await res.json()
     matches.value = data
   } catch (err) {
@@ -209,13 +195,38 @@ onMounted(fetchMatches)
   background: #111;
 }
 
-/* 공통 패널 */
 .lineup-panel {
   width: 25%;
   background: #1d1d1d;
   padding: 16px;
   border-radius: 10px;
   color: #e0e0e0;
+}
+
+.face {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.player-item {
+  display: flex;
+  align-items: center;
+  margin: 6px 0;
+}
+
+.name {
+  margin-right: 8px;
+}
+
+.pos {
+  opacity: 0.7;
+  font-size: 0.8rem;
+}
+
+.match-list-panel {
+  width: 50%;
 }
 
 /* 리그 선택 */
@@ -233,6 +244,7 @@ onMounted(fetchMatches)
   border-radius: 6px;
 }
 
+/* 주차 이동 */
 .week-selector {
   display: flex;
   justify-content: center;
@@ -250,11 +262,7 @@ onMounted(fetchMatches)
   cursor: pointer;
 }
 
-.match-list-panel {
-  width: 50%;
-}
-
-/* 경기 카드 UI */
+/* 경기 카드 */
 .match-card {
   background: #1d1d1d;
   padding: 14px;
@@ -295,5 +303,4 @@ onMounted(fetchMatches)
   font-weight: bold;
   font-size: 1.1rem;
 }
-
 </style>

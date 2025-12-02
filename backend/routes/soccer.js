@@ -313,7 +313,7 @@ router.get("/matches", async (req, res) => {
 });
 
 // =======================================
-// 9) API-Football 라인업 가져오기
+// 9) API-Football 경기 라인업 (포메이션, 사진 포함)
 // =======================================
 router.get("/lineup/:fixtureId", async (req, res) => {
   const { fixtureId } = req.params;
@@ -325,16 +325,53 @@ router.get("/lineup/:fixtureId", async (req, res) => {
   }
 
   try {
-    const response = await apiFootball.get(`/fixtures/lineups?fixture=${fixtureId}`);
+    const response = await apiFootball.get(
+      `/fixtures/lineups?fixture=${fixtureId}`
+    );
+
     const data = response.data.response;
 
     if (!data || data.length === 0) {
-      return res.status(404).json({ error: "라인업이 아직 제공되지 않았습니다." });
+      return res
+        .status(404)
+        .json({ error: "라인업이 아직 제공되지 않았습니다." });
     }
 
-    cache.set(cacheKey, data, 60 * 30); // 30분 캐시
-    res.json(data);
+    // 홈 + 원정 두 팀 라인업
+    const home = data[0];
+    const away = data[1];
 
+    const formatted = {
+      home: {
+        team: home.team,
+        coach: home.coach,
+        formation: home.formation, // "4-3-3"
+        startXI: home.startXI.map((p) => ({
+          id: p.player.id,
+          name: p.player.name,
+          number: p.player.number,
+          pos: p.player.pos, // RW, CB, GK...
+          photo: p.player.photo
+        })),
+        subs: home.substitutes
+      },
+      away: {
+        team: away.team,
+        coach: away.coach,
+        formation: away.formation,
+        startXI: away.startXI.map((p) => ({
+          id: p.player.id,
+          name: p.player.name,
+          number: p.player.number,
+          pos: p.player.pos,
+          photo: p.player.photo
+        })),
+        subs: away.substitutes
+      }
+    };
+
+    cache.set(cacheKey, formatted, 60 * 10); // 10분 캐시
+    res.json(formatted);
   } catch (err) {
     console.error("Lineup API ERROR:", err.response?.data || err.message);
     res.status(500).json({ error: "Failed to load lineup" });
