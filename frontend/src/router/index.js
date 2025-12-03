@@ -39,14 +39,14 @@ const routes = [
 
   // 상세 페이지 라우트
   {
-    path: '/team/:id',
-    name: 'teamDetail',
-    component: TeamDetailView
+    path: "/team/:id",
+    name: "TeamDetail",
+    component: () => import("../views/TeamDetailView.vue")
   },
   {
-    path: '/player/:id',
-    name: 'playerDetail',
-    component: PlayerDetailView
+    path: "/player/:id",
+    name: "PlayerDetail",
+    component: () => import("../views/PlayerDetailView.vue")
   },
   {
     path: '/login',

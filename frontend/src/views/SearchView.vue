@@ -54,8 +54,11 @@ const router = useRouter();
 const query = ref("");
 const results = ref([]);
 const searched = ref(false);
-const searchType = ref("both"); // 기본 전체 검색
+const searchType = ref("both");
 
+/* =======================
+   검색 함수
+   ======================= */
 const search = async () => {
   searched.value = true;
 
@@ -97,7 +100,8 @@ const search = async () => {
       id: p.player.id,
       name: p.player.name,
       logo: p.player.photo,
-      sub: `선수 | ${p.statistics?.[0]?.team?.name ?? "소속팀 없음"}`,
+      // 여기에서 Null 병합 연산자 ?? 제거
+      sub: `선수 | ${p.statistics?.[0]?.team?.name || "소속팀 없음"}`,
       type: "player"
     }));
 
@@ -177,6 +181,7 @@ const goDetail = (item) => {
   text-align: left;
   cursor: pointer;
 }
+
 .result-card img {
   border-radius: 6px;
   margin-bottom: 8px;

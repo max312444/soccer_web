@@ -1,68 +1,92 @@
 <template>
-  <div style="color:white; padding:20px;">
-    <h2>팀 상세 정보</h2>
-    <p>팀 ID: {{ id }}</p>
+  <div class="detail-container" v-if="team">
+    <div class="header">
+      <img :src="team.logo" class="team-logo" />
+      <h1>{{ team.name }}</h1>
+      <p>{{ team.country }}</p>
+    </div>
 
-    <div v-if="loading">데이터 불러오는 중...</div>
+    <div class="info-box">
+      <p>감독: {{ team.coach || "정보 없음" }}</p>
+      <p>창단: {{ team.founded || "정보 없음" }}</p>
+      <p>스타디움: {{ team.venue?.name || "정보 없음" }}</p>
+      <p>도시: {{ team.venue?.city || "정보 없음" }}</p>
+    </div>
 
-    <div v-if="team && !loading">
-      <h3>{{ team.team.name }}</h3>
-      <img :src="team.team.logo" alt="logo" width="120" style="margin:20px 0;" />
-      <p>국가: {{ team.team.country }}</p>
-      <p>설립: {{ team.team.founded }}</p>
-      <p>홈구장: {{ team.venue.name }} ({{ team.venue.city }})</p>
-
-      <hr style="margin:30px 0;" />
-
-      <h3>소속 선수 목록</h3>
-
-      <div v-if="players.length === 0">
-        <p>선수 정보가 없습니다.</p>
-      </div>
-
-      <div v-for="p in players" :key="p.player.id" class="player-card">
-        <img :src="p.player.photo" width="50" style="border-radius:50%;" />
-        <strong>{{ p.player.name }}</strong>
-        <span>({{ p.statistics[0].games.position }})</span>
+    <h2>소속 선수</h2>
+    <div class="players">
+      <div 
+        class="player-card" 
+        v-for="p in players" 
+        :key="p.player.id"
+        @click="goPlayer(p.player.id)"
+      >
+        <img :src="p.player.photo" />
+        <p>{{ p.player.name }}</p>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
-const route = useRoute()
-const id = route.params.id
+const route = useRoute();
+const router = useRouter();
 
-const team = ref(null)
-const players = ref([])
-const loading = ref(true)
+const team = ref(null);
+const players = ref([]);
 
 onMounted(async () => {
-  // 1) 팀 기본 정보
-  const teamRes = await fetch(`http://localhost:7070/soccer/team/${id}`)
-  const teamData = await teamRes.json()
+  const id = route.params.id;
 
-  team.value = teamData.response?.[0] ?? null
+  // 팀 정보
+  const teamRes = await fetch(`/soccer/team?id=${id}`);
+  const teamData = await teamRes.json();
+  team.value = teamData.response[0].team;
+  
+  // 소속 선수 정보
+  const squadRes = await fetch(`/soccer/players?team=${id}`);
+  const squadData = await squadRes.json();
+  players.value = squadData.response;
+});
 
-  // 2) 팀 선수 목록
-  const playerRes = await fetch(`http://localhost:7070/soccer/team/${id}/players`)
-  const playerData = await playerRes.json()
-
-  players.value = playerData.response ?? []
-
-  loading.value = false
-})
+const goPlayer = (id) => {
+  router.push(`/player/${id}`);
+};
 </script>
 
-<style>
-.player-card {
+<style scoped>
+.detail-container {
+  padding: 20px;
+  color: white;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.team-logo {
+  width: 120px;
+  margin-bottom: 10px;
+}
+
+.players {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 0;
-  border-bottom: 1px solid #333;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.player-card {
+  width: 120px;
+  cursor: pointer;
+  text-align: center;
+}
+
+.player-card img {
+  width: 100%;
+  border-radius: 8px;
 }
 </style>

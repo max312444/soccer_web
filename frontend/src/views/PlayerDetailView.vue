@@ -1,85 +1,75 @@
 <template>
-  <div style="color:white; padding:20px;">
-    <h2>선수 상세 정보</h2>
-    <p>선수 ID: {{ id }}</p>
-
-    <div v-if="loading">데이터 불러오는 중...</div>
-
-    <div v-if="player && !loading">
-
-      <!-- 기본 정보 -->
-      <h3>{{ player.player.name }}</h3>
-      <img
-        :src="player.player.photo"
-        alt="player photo"
-        width="120"
-        style="margin:20px 0; border-radius:10px;"
-      />
-      <p>국가: {{ player.player.nationality }}</p>
-      <p>출생: {{ player.player.birth.date }} ({{ player.player.birth.place }})</p>
-      <p>나이: {{ player.player.age }}세</p>
-      <p>키: {{ player.player.height }}</p>
-      <p>몸무게: {{ player.player.weight }}</p>
-
-      <hr />
-
-      <!-- 시즌 스탯 -->
-      <h3>2023 시즌 기록</h3>
-      <p>포지션: {{ stats.games.position }}</p>
-      <p>출전 경기수: {{ stats.games.appearences }}</p>
-      <p>선발: {{ stats.games.lineups }}</p>
-      <p>득점: {{ stats.goals.total }}</p>
-      <p>도움: {{ stats.goals.assists }}</p>
-
-      <hr />
-
-      <!-- 클럽 이력(커리어) -->
-      <h3>클럽 커리어</h3>
-      <div v-if="career.length === 0">
-        <p>커리어 정보가 없습니다.</p>
-      </div>
-
-      <ul v-else>
-        <li v-for="(c, index) in career" :key="index">
-          {{ c.date }}  
-          → {{ c.teams.out?.name ?? "?" }}  
-          → {{ c.teams.in?.name ?? "?" }}  
-          ({{ c.type }})
-        </li>
-      </ul>
+  <div class="detail-container" v-if="player && statistics">
+    <div class="header">
+      <img :src="player.photo" class="player-photo" />
+      <h1>{{ player.name }}</h1>
+      <p>{{ player.nationality }} | {{ player.birth.date }}</p>
     </div>
 
-    <div v-if="!player && !loading">
-      <p>선수 정보를 찾을 수 없습니다.</p>
+    <div class="info-box">
+      <p>포지션: {{ statistics.games.position }}</p>
+      <p>키: {{ player.height || "정보 없음" }}</p>
+      <p>체중: {{ player.weight || "정보 없음" }}</p>
+    </div>
+
+    <h2>소속 팀</h2>
+    <div class="team-box" @click="goTeam(statistics.team.id)">
+      <img :src="statistics.team.logo" class="team-logo" />
+      <p>{{ statistics.team.name }}</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, onMounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 
-const route = useRoute()
-const id = route.params.id
+const route = useRoute();
+const router = useRouter();
 
-const player = ref(null)
-const stats = ref(null)
-const career = ref([])
-
-const loading = ref(true)
+const player = ref(null);
+const statistics = ref(null);
 
 onMounted(async () => {
-  const res = await fetch(`http://localhost:7070/soccer/player/${id}`)
-  const data = await res.json()
+  const id = route.params.id;
 
-  const detail = data.response?.[0] ?? null
+  const res = await fetch(`/soccer/player?id=${id}`);
+  const data = await res.json();
 
-  if (detail) {
-    player.value = detail
-    stats.value = detail.statistics[0]
-    career.value = detail.transfers ?? []
-  }
+  const first = data.response[0];
 
-  loading.value = false
-})
+  player.value = first.player;
+  statistics.value = first.statistics[0];
+});
+
+const goTeam = (id) => {
+  router.push(`/team/${id}`);
+};
 </script>
+
+<style scoped>
+.detail-container {
+  padding: 20px;
+  color: white;
+}
+
+.player-photo {
+  width: 140px;
+  border-radius: 10px;
+}
+
+.team-box {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #222;
+  padding: 10px;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+
+.team-logo {
+  width: 50px;
+}
+</style>
