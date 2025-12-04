@@ -35,7 +35,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRouter);
 app.use("/api/favorites", favoritesRouter);
 app.use("/api/me", meRouter);
-app.use("/soccer", soccerRouter);
+app.use("/api/soccer", soccerRouter);
 app.use("/api/news", newsRouter);
 
 // ---------------------

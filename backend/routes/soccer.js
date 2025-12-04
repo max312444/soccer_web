@@ -7,7 +7,7 @@ const cache = new NodeCache({ stdTTL: 3600 });
 console.log("soccerRouter loaded with caching!");
 
 /* =======================================
-   1) FOOTBALL-DATA (무료 경기 일정)
+   FOOTBALL-DATA API 설정
 ======================================= */
 const API_TOKEN =
   process.env.FOOTBALL_DATA_API_KEY ||
@@ -24,11 +24,11 @@ const api = axios.create({
   headers: { "X-Auth-Token": API_TOKEN },
 });
 
-/* 리그 코드(무료 경기일정 필터용) */
+/* 무료 제공되는 주요 리그 코드 */
 const COMMON_LEAGUE_CODES = ["PL", "BL1", "SA", "PD", "FL1"];
 
 /* =======================================
-   2) 리그 정보 조회
+   1) 리그 정보 조회
 ======================================= */
 router.get("/competition", async (req, res) => {
   const { league } = req.query;
@@ -45,7 +45,7 @@ router.get("/competition", async (req, res) => {
 });
 
 /* =======================================
-   3) 팀 검색
+   2) 팀 검색
 ======================================= */
 router.get("/teams", async (req, res) => {
   const name = (req.query.name || "").toLowerCase();
@@ -81,7 +81,57 @@ router.get("/teams", async (req, res) => {
 });
 
 /* =======================================
-   4) 팀 상세 정보
+   3) 선수 검색 추가 (중요!)
+======================================= */
+router.get("/players", async (req, res) => {
+  const name = (req.query.name || "").toLowerCase();
+  if (!name) return res.json([]);
+
+  const cacheKey = `players-${name}`;
+  if (cache.has(cacheKey)) return res.json(cache.get(cacheKey));
+
+  try {
+    let results = [];
+
+    // 1) 리그별 팀 목록
+    for (const code of COMMON_LEAGUE_CODES) {
+      const teamsRes = await api.get(`/competitions/${code}/teams`);
+      const teams = teamsRes.data.teams || [];
+
+      // 2) 팀 스쿼드 병렬 처리
+      const squadRequests = teams.map(t => api.get(`/teams/${t.id}`));
+      const squadResponses = await Promise.allSettled(squadRequests);
+
+      // 3) 스쿼드에서 선수 검색
+      squadResponses.forEach((r, idx) => {
+        if (r.status !== "fulfilled") return;
+
+        const team = teams[idx];
+        const squad = r.value.data.squad || [];
+
+        squad.forEach((player) => {
+          if (player.name.toLowerCase().includes(name)) {
+            results.push({
+              id: player.id,
+              name: player.name,
+              team: team.name,
+              logo: `https://media.api-sports.io/football/players/${player.id}.png`,
+            });
+          }
+        });
+      });
+    }
+
+    cache.set(cacheKey, results, 1800);
+    res.json(results);
+  } catch (err) {
+    console.error("Player search ERROR:", err.response?.data || err.message);
+    res.status(500).json({ error: "Player search failed" });
+  }
+});
+
+/* =======================================
+   4) 팀 상세
 ======================================= */
 router.get("/team/:id", async (req, res) => {
   const { id } = req.params;
@@ -106,7 +156,7 @@ router.get("/team/:id", async (req, res) => {
 });
 
 /* =======================================
-   5) 팀 스쿼드 (이건 유지)
+   5) 팀 스쿼드
 ======================================= */
 router.get("/team/:id/squad", async (req, res) => {
   const { id } = req.params;
@@ -141,7 +191,7 @@ router.get("/team/:id/squad", async (req, res) => {
 });
 
 /* =======================================
-   6) 리그 순위
+   6) 순위표
 ======================================= */
 router.get("/standings", async (req, res) => {
   const { league, season } = req.query;
@@ -178,7 +228,7 @@ router.get("/standings", async (req, res) => {
 });
 
 /* =======================================
-   7) 경기 일정 (무료 Football-Data)
+   7) 경기 일정
 ======================================= */
 router.get("/matches", async (req, res) => {
   const { from, to, league } = req.query;

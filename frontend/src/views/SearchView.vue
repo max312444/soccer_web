@@ -49,6 +49,13 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 
+// 만약 settings.js 파일이 있다면 이렇게 사용:
+// import { settings } from "@/settings.js";
+// const BASE = settings.host;  // 예: http://localhost:7070/api
+
+// 여기서는 직접 URL 선언
+const BASE = "http://localhost:7070/api";
+
 const router = useRouter();
 
 const query = ref("");
@@ -58,7 +65,7 @@ const searchType = ref("both");
 
 /* =======================
    검색 함수
-   ======================= */
+======================= */
 const search = async () => {
   searched.value = true;
 
@@ -71,17 +78,23 @@ const search = async () => {
 
   /* =======================
      1) 팀 검색
-     ======================= */
+  ======================= */
   if (searchType.value === "team" || searchType.value === "both") {
-    const teamRes = await fetch(`/soccer/teams?name=${query.value}`);
+    const teamRes = await fetch(
+      `${BASE}/soccer/teams?name=${encodeURIComponent(query.value)}`
+    );
+    
     const teamData = await teamRes.json();
 
-    const teamResults = (teamData.response || []).map(t => ({
-      key: "team-" + t.team.id,
-      id: t.team.id,
-      name: t.team.name,
-      logo: t.team.logo,
-      sub: `팀 | ${t.team.country}`,
+    // 너의 백엔드는 response 없이 배열만 반환하므로 teamData 자체가 배열일 수 있음
+    const list = teamData.response || teamData || [];
+
+    const teamResults = list.map(t => ({
+      key: "team-" + (t.team?.id || t.id),
+      id: t.team?.id || t.id,
+      name: t.team?.name || t.name,
+      logo: t.team?.logo || t.logo,
+      sub: `팀`,
       type: "team"
     }));
 
@@ -90,17 +103,20 @@ const search = async () => {
 
   /* =======================
      2) 선수 검색
-     ======================= */
+  ======================= */
   if (searchType.value === "player" || searchType.value === "both") {
-    const playerRes = await fetch(`/soccer/players?name=${query.value}`);
+    const playerRes = await fetch(
+      `${BASE}/soccer/players?name=${encodeURIComponent(query.value)}`
+    );
+    
     const playerData = await playerRes.json();
+    const list = playerData.response || playerData || [];
 
-    const playerResults = (playerData.response || []).map(p => ({
-      key: "player-" + p.player.id,
-      id: p.player.id,
-      name: p.player.name,
-      logo: p.player.photo,
-      // 여기에서 Null 병합 연산자 ?? 제거
+    const playerResults = list.map(p => ({
+      key: "player-" + p.player?.id,
+      id: p.player?.id,
+      name: p.player?.name,
+      logo: p.player?.photo,
       sub: `선수 | ${p.statistics?.[0]?.team?.name || "소속팀 없음"}`,
       type: "player"
     }));
@@ -113,7 +129,7 @@ const search = async () => {
 
 /* ===========================
    상세 페이지 이동
-   =========================== */
+=========================== */
 const goDetail = (item) => {
   if (item.type === "team") {
     router.push(`/team/${item.id}`);
