@@ -5,7 +5,6 @@
     <div class="search-bar">
       <!-- 검색 타입 선택 -->
       <select v-model="searchType" class="select-box">
-        <option value="both">전체 검색</option>
         <option value="team">팀 검색</option>
         <option value="player">선수 검색</option>
       </select>
@@ -14,7 +13,7 @@
       <input
         v-model="query"
         type="text"
-        placeholder="팀명 혹은 선수명을 입력하세요"
+        placeholder="팀명 또는 선수명을 입력하세요"
         class="search-input"
       />
 
@@ -49,11 +48,6 @@
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 
-// 만약 settings.js 파일이 있다면 이렇게 사용:
-// import { settings } from "@/settings.js";
-// const BASE = settings.host;  // 예: http://localhost:7070/api
-
-// 여기서는 직접 URL 선언
 const BASE = "http://localhost:7070/api";
 
 const router = useRouter();
@@ -61,7 +55,9 @@ const router = useRouter();
 const query = ref("");
 const results = ref([]);
 const searched = ref(false);
-const searchType = ref("both");
+
+// 전체 검색 삭제 → 팀 or 선수만 남긴다
+const searchType = ref("team");
 
 /* =======================
    검색 함수
@@ -79,21 +75,19 @@ const search = async () => {
   /* =======================
      1) 팀 검색
   ======================= */
-  if (searchType.value === "team" || searchType.value === "both") {
+  if (searchType.value === "team") {
     const teamRes = await fetch(
       `${BASE}/soccer/teams?name=${encodeURIComponent(query.value)}`
     );
     
     const teamData = await teamRes.json();
-
-    // 너의 백엔드는 response 없이 배열만 반환하므로 teamData 자체가 배열일 수 있음
-    const list = teamData.response || teamData || [];
+    const list = Array.isArray(teamData) ? teamData : teamData.response || [];
 
     const teamResults = list.map(t => ({
-      key: "team-" + (t.team?.id || t.id),
-      id: t.team?.id || t.id,
-      name: t.team?.name || t.name,
-      logo: t.team?.logo || t.logo,
+      key: "team-" + t.id,
+      id: t.id,
+      name: t.name,
+      logo: t.logo,
       sub: `팀`,
       type: "team"
     }));
@@ -104,24 +98,24 @@ const search = async () => {
   /* =======================
      2) 선수 검색
   ======================= */
-  if (searchType.value === "player" || searchType.value === "both") {
+  if (searchType.value === "player") {
     const playerRes = await fetch(
       `${BASE}/soccer/players?name=${encodeURIComponent(query.value)}`
     );
     
     const playerData = await playerRes.json();
-    const list = playerData.response || playerData || [];
+    const list = Array.isArray(playerData) ? playerData : playerData.response || [];
 
-    const playerResults = list.map(p => ({
-      key: "player-" + p.player?.id,
-      id: p.player?.id,
-      name: p.player?.name,
-      logo: p.player?.photo,
-      sub: `선수 | ${p.statistics?.[0]?.team?.name || "소속팀 없음"}`,
-      type: "player"
-    }));
-
-    finalResults.push(...playerResults);
+    finalResults.push(
+      ...list.map(p => ({
+        key: "player-" + p.id,
+        id: p.id,
+        name: p.name,
+        logo: p.logo,
+        sub: `선수 | ${p.team || "소속팀 없음"}`,
+        type: "player"
+      }))
+    );
   }
 
   results.value = finalResults;
