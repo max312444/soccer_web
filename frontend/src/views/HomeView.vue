@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import SideRanking from '../components/home_components/SideRanking.vue'
 import Login from '../components/home_components/Login.vue'
 import SignupForm from '../components/home_components/SignupForm.vue'
@@ -9,47 +9,123 @@ import { useAuthStore } from '@/stores/auth'
 const authStore = useAuthStore()
 const showSignup = ref(false)
 
+// 상태
 const isLoggedIn = computed(() => authStore.isLoggedIn)
+const accessToken = computed(() => authStore.token);
 
-const dummyNews = [
-  '손흥민, LAFC  Here we go!',
-  '모드리치 인터 밀란 Here we go!',
-  '곤살루 게드스 레알 소시에다드 Here we go!',
-  '비르츠, 리버풀 Here we go!',
-  'A.아놀드 레알마드리드 Here we go!',
-  '바르셀로나FC VS 대구FC 7 : 3 로 종료',
-  '토트넘, 손흥민의 7번 등번호 당분간 공백 유지 결정',
-  '이삭, 리버풀 이적희망, 하지만 합의 불발',
-  '리버풀, 알힐랄 누녜스 이적 합의'
-]
+// 뉴스 상태
+const pinnedNews = ref([])
+const normalNews = ref([])
+const loading = ref(false)
+const errorMsg = ref('')
+
+// 뉴스 API 호출
+const fetchNews = async () => {
+  const token = accessToken.value
+
+  if (!token) {
+    console.log('fetchNews 중단: accessToken 없음')
+    return
+  }
+
+  try {
+    loading.value = true
+    errorMsg.value = ''
+
+    console.log('뉴스 요청 시작, token:', token)
+
+    const res = await fetch('http://localhost:7070/api/news', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+
+    if (res.status === 401) {
+      throw new Error('인증 실패 (401)')
+    }
+
+    if (!res.ok) {
+      throw new Error('뉴스 요청 실패')
+    }
+
+    const data = await res.json()
+    console.log('뉴스 응답:', data)
+
+    pinnedNews.value = data.pinned || []
+    normalNews.value = data.list || []
+
+  } catch (err) {
+    console.error('뉴스 에러:', err)
+    errorMsg.value = '뉴스를 불러오지 못했습니다.'
+    pinnedNews.value = []
+    normalNews.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+// 최초 로드 시 (새로고침 후 이미 로그인 상태일 경우)
+onMounted(() => {
+  if (accessToken.value) {
+    fetchNews()
+  }
+})
+
+// accessToken이 세팅되는 순간을 감시 (가장 중요)
+watch(accessToken, (token) => {
+  console.log('accessToken 변경 감지:', token)
+
+  if (token) {
+    fetchNews()
+  } else {
+    pinnedNews.value = []
+    normalNews.value = []
+  }
+})
 </script>
 
 <template>
   <div class="home-wrapper">
 
-    <!-- 왼쪽 프로필 또는 로그인/회원가입 박스 -->
+    <!-- 왼쪽 프로필 / 로그인 -->
     <aside class="left-panel">
-      <!-- 로그인 상태일 때 프로필 표시 -->
       <ProfileView v-if="isLoggedIn" />
 
-      <!-- 로그아웃 상태일 때 로그인/회원가입 표시 -->
       <template v-else>
-        <Login 
-          v-if="!showSignup" 
-          @show-signup="showSignup = true" 
+        <Login
+          v-if="!showSignup"
+          @show-signup="showSignup = true"
         />
-        <SignupForm 
-          v-if="showSignup" 
-          @close="showSignup = false" 
+        <SignupForm
+          v-if="showSignup"
+          @close="showSignup = false"
         />
       </template>
     </aside>
 
-    <!-- 중앙 뉴스 패널 -->
+    <!-- 중앙 뉴스 -->
     <main class="main-panel">
-      <h2>뉴스 목록</h2>
-      <ul>
-        <li v-for="n in dummyNews" :key="n">{{ n }}</li>
+      <h2>선호 팀 뉴스</h2>
+
+      <p v-if="loading">뉴스를 불러오는 중입니다.</p>
+      <p v-if="errorMsg">{{ errorMsg }}</p>
+
+      <ul v-if="!loading && pinnedNews.length">
+        <li v-for="news in pinnedNews" :key="news.url">
+          <a :href="news.url" target="_blank" rel="noopener">
+            {{ news.title }}
+          </a>
+        </li>
+      </ul>
+
+      <h2>전체 뉴스</h2>
+
+      <ul v-if="!loading && normalNews.length">
+        <li v-for="news in normalNews" :key="news.url">
+          <a :href="news.url" target="_blank" rel="noopener">
+            {{ news.title }}
+          </a>
+        </li>
       </ul>
     </main>
 

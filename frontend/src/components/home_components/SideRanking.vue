@@ -12,13 +12,7 @@
 
 <script setup>
 const topTeams = [
-  { league: 'EPL', team: '리버풀' },
-  { league: '라리가', team: '바르셀로나' },
-  { league: '분데스리가', team: '레버쿠젠' },
-  { league: '세리에 A', team: '인터 밀란' },
-  { league: '프랑스 리그1', team: 'PSG'},
-  { league: '에레디비시', team: '에인트호번'},
-  { league: 'K 리그1', team: '전북 현대'},
+
 ];
 </script>
 
