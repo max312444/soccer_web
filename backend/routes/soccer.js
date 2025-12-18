@@ -232,4 +232,50 @@ router.get("/matches", async (req, res) => {
   }
 });
 
+/* =======================================
+   7) 사이드바용 리그별 1위
+======================================= */
+const POPULAR_LEAGUES = [
+  { code: "PL", name: "Premier League" },
+  { code: "PD", name: "La Liga" },
+  { code: "SA", name: "Serie A" },
+  { code: "BL1", name: "Bundesliga" },
+  { code: "FL1", name: "Ligue 1" },
+];
+
+router.get("/side-rankings", async (req, res) => {
+  try {
+    const result = [];
+
+    for (const league of POPULAR_LEAGUES) {
+      try {
+        const r = await api.get(`/competitions/${league.code}/standings`);
+        const total = r.data.standings.find(s => s.type === "TOTAL");
+        if (!total || !total.table.length) continue;
+
+        const first = total.table[0];
+
+        result.push({
+          leagueName: league.name,
+          teamName: first.team.name,
+          teamLogo: first.team.crest,
+          points: first.points,
+        });
+      } catch (e) {
+        console.warn(
+          `[side-rankings] ${league.code} skipped:`,
+          e.response?.status,
+          e.response?.data || e.message
+        );
+        continue;
+      }
+    }
+
+    res.json(result);
+  } catch (err) {
+    console.error("Side rankings FATAL ERROR:", err);
+    res.status(500).json({ error: "Side rankings failed" });
+  }
+});
+
 module.exports = router;
