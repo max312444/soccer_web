@@ -28,7 +28,8 @@ const fetchRssNews = async () => {
   }));
 };
 
-router.get("/", authenticate, async (req, res) => {
+// 🔥 authenticate 제거
+router.get("/", async (req, res) => {
   try {
     const now = Date.now();
 
@@ -41,12 +42,27 @@ router.get("/", authenticate, async (req, res) => {
       };
     }
 
-    const favoriteTeam = req.user?.favorite_team;
+    // 🔥 토큰이 있으면 사용자 정보만 선택적으로 파싱
+    let user = null;
+    const authHeader = req.headers.authorization;
+
+    if (authHeader?.startsWith("Bearer ")) {
+      try {
+        const fakeReq = { headers: { authorization: authHeader } };
+        authenticate(fakeReq, {}, () => {
+          user = fakeReq.user;
+        });
+      } catch {
+        user = null;
+      }
+    }
+
+    const favoriteTeam = user?.favorite_team;
 
     let pinned = [];
     let rest = [...newsCache.data];
 
-    // 선호 팀 뉴스 필터링
+    // 선호 팀 뉴스 필터링 (로그인 한 경우만)
     if (favoriteTeam) {
       const keyword = favoriteTeam.toLowerCase();
 

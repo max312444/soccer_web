@@ -24,11 +24,21 @@
         <button class="arrow-btn" @click="nextWeek">다음 주 ▶</button>
       </div>
 
+      <!-- 캘린더 -->
+      <div class="calendar-selector">
+        <input
+          type="date"
+          :value="formatDate(currentWeek)"
+          @change="onCalendarChange"
+        />
+      </div>
+
       <!-- 경기 카드 목록 -->
       <div
         v-for="match in matches"
         :key="match.fixture.id"
         class="match-card"
+        @click="goMatchDetail(match)"
       >
         <div class="match-date">
           {{ formatMatchTime(match.fixture.date) }}
@@ -36,7 +46,10 @@
 
         <div class="match-teams">
           <div class="team">
-            <img :src="resolvePhoto(match.teams.home.logo)" class="team-logo" />
+            <img
+              :src="resolvePhoto(match.teams.home.logo)"
+              class="team-logo"
+            />
             <span>{{ match.teams.home.name }}</span>
           </div>
 
@@ -48,19 +61,24 @@
           </span>
 
           <div class="team">
-            <img :src="resolvePhoto(match.teams.away.logo)" class="team-logo" />
+            <img
+              :src="resolvePhoto(match.teams.away.logo)"
+              class="team-logo"
+            />
             <span>{{ match.teams.away.name }}</span>
           </div>
         </div>
       </div>
-    </div>
 
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
 
+const router = useRouter();
 const API_BASE = "http://localhost:7070";
 
 /* 이미지 URL 처리 */
@@ -110,10 +128,24 @@ const nextWeek = () => {
   fetchMatches();
 };
 
+/* 캘린더 */
+const onCalendarChange = (e) => {
+  const picked = new Date(e.target.value);
+  if (isNaN(picked)) return;
+
+  currentWeek.value = picked;
+  fetchMatches();
+};
+
+/* 경기 클릭 → 상세 페이지 이동 */
+const goMatchDetail = (match) => {
+  router.push(`/match/${match.fixture.id}`);
+};
+
 /* 경기 일정 로딩 */
 const fetchMatches = async () => {
   matches.value = [];
-  
+
   const start = new Date(currentWeek.value);
   const end = new Date(currentWeek.value);
   end.setDate(end.getDate() + 6);
@@ -138,7 +170,6 @@ onMounted(fetchMatches);
 </script>
 
 <style scoped>
-/* 전체 중앙 정렬 */
 .match-wrapper {
   display: flex;
   justify-content: center;
@@ -146,13 +177,11 @@ onMounted(fetchMatches);
   background: #111;
 }
 
-/* 중앙 패널만 존재하므로 width를 적절히 설정 */
 .match-list-panel {
   width: 60%;
   max-width: 900px;
 }
 
-/* 리그 선택 */
 .league-selector {
   display: flex;
   justify-content: center;
@@ -167,7 +196,6 @@ onMounted(fetchMatches);
   border-radius: 6px;
 }
 
-/* 주차 이동 */
 .week-selector {
   display: flex;
   justify-content: center;
@@ -185,7 +213,6 @@ onMounted(fetchMatches);
   cursor: pointer;
 }
 
-/* 경기 카드 */
 .match-card {
   background: #1d1d1d;
   padding: 14px;
@@ -225,5 +252,19 @@ onMounted(fetchMatches);
 .vs {
   font-weight: bold;
   font-size: 1.1rem;
+}
+
+.calendar-selector {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 14px;
+}
+
+.calendar-selector input {
+  background: #1d1d1d;
+  color: #fff;
+  border: 1px solid #444;
+  padding: 6px 10px;
+  border-radius: 6px;
 }
 </style>

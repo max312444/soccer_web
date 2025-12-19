@@ -6,10 +6,7 @@ import RankView from '../views/RankView.vue'
 import MatchView from '../views/MatchView.vue'
 import GuideView from '../views/GuideView.vue'
 
-// 상세 페이지
-import TeamDetailView from '../views/TeamDetailView.vue'
-import PlayerDetailView from '../views/PlayerDetailView.vue'
-
+// 상세 페이지들은 lazy loading
 const routes = [
   {
     path: '/',
@@ -32,21 +29,21 @@ const routes = [
     component: MatchView
   },
   {
+    path: '/match/:id',
+    name: 'matchdetail',
+    component: () => import('../views/MatchDetail.vue'),
+    props: true
+  },
+  {
     path: '/guide',
     name: 'guide',
     component: GuideView
   },
-
-  // 상세 페이지 라우트
   {
-    path: "/team/:id",
-    name: "TeamDetail",
-    component: () => import("../views/TeamDetailView.vue")
-  },
-  {
-    path: "/player/:id",
-    name: "PlayerDetail",
-    component: () => import("../views/PlayerDetailView.vue")
+    path: '/team/:id',
+    name: 'TeamDetail',
+    component: () => import('../views/TeamDetailView.vue'),
+    props: true
   },
   {
     path: '/login',

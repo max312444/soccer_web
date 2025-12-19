@@ -24,19 +24,38 @@ const api = axios.create({
   headers: { "X-Auth-Token": API_TOKEN },
 });
 
+/* =======================================
+   API-Football 설정 (경기 이벤트용)
+======================================= */
+const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY;
+
+if (!API_FOOTBALL_KEY) {
+  console.error("[ERROR] API-Football API KEY is missing!");
+}
+
+const apiFootball = axios.create({
+  baseURL: "https://v3.football.api-sports.io",
+  headers: {
+    "x-apisports-key": API_FOOTBALL_KEY,
+  },
+});
+
 /* 무료 제공되는 주요 리그 코드 */
 const COMMON_LEAGUE_CODES = ["PL", "BL1", "SA", "PD", "FL1"];
 
 /* =======================================
-   1) 리그 정보 조회
+   1) 리그 정보 조회 (CACHE 추가)
 ======================================= */
 router.get("/competition", async (req, res) => {
   const { league } = req.query;
-
   if (!league) return res.status(400).json({ error: "League is required" });
+
+  const cacheKey = `competition-${league}`;
+  if (cache.has(cacheKey)) return res.json(cache.get(cacheKey));
 
   try {
     const response = await api.get(`/competitions/${league}`);
+    cache.set(cacheKey, response.data, 3600);
     res.json(response.data);
   } catch (err) {
     console.error("Competition ERROR:", err.response?.data || err.message);
@@ -86,7 +105,6 @@ router.get("/teams", async (req, res) => {
 router.get("/team/:id", async (req, res) => {
   const { id } = req.params;
   const cacheKey = `team-${id}`;
-
   if (cache.has(cacheKey)) return res.json(cache.get(cacheKey));
 
   try {
@@ -110,6 +128,8 @@ router.get("/team/:id", async (req, res) => {
 ======================================= */
 router.get("/team/:id/squad", async (req, res) => {
   const { id } = req.params;
+  const cacheKey = `squad-${id}`;
+  if (cache.has(cacheKey)) return res.json(cache.get(cacheKey));
 
   try {
     const r = await api.get(`/teams/${id}`);
@@ -133,6 +153,7 @@ router.get("/team/:id/squad", async (req, res) => {
       else grouped.UNKNOWN.push(info);
     });
 
+    cache.set(cacheKey, grouped, 21600);
     res.json(grouped);
   } catch (err) {
     console.error("Squad ERROR:", err.response?.data || err.message);
@@ -145,9 +166,11 @@ router.get("/team/:id/squad", async (req, res) => {
 ======================================= */
 router.get("/standings", async (req, res) => {
   const { league, season } = req.query;
-
   if (!league || !season)
     return res.status(400).json({ error: "league, season required" });
+
+  const cacheKey = `standings-${league}-${season}`;
+  if (cache.has(cacheKey)) return res.json(cache.get(cacheKey));
 
   try {
     const r = await api.get(`/competitions/${league}/standings`);
@@ -170,6 +193,7 @@ router.get("/standings", async (req, res) => {
       points: t.points,
     }));
 
+    cache.set(cacheKey, standings, 300);
     res.json(standings);
   } catch (err) {
     console.error("Standings ERROR:", err.response?.data || err.message);
@@ -182,7 +206,6 @@ router.get("/standings", async (req, res) => {
 ======================================= */
 router.get("/matches", async (req, res) => {
   const { from, to, league } = req.query;
-
   if (!from || !to)
     return res.status(400).json({ error: "from, to required" });
 
@@ -190,9 +213,7 @@ router.get("/matches", async (req, res) => {
   if (cache.has(cacheKey)) return res.json(cache.get(cacheKey));
 
   try {
-    const url = `/matches?dateFrom=${from}&dateTo=${to}`;
-    const r = await api.get(url);
-
+    const r = await api.get(`/matches?dateFrom=${from}&dateTo=${to}`);
     let list = r.data.matches;
 
     if (league) {
@@ -244,37 +265,141 @@ const POPULAR_LEAGUES = [
 ];
 
 router.get("/side-rankings", async (req, res) => {
+  const cacheKey = "side-rankings";
+  if (cache.has(cacheKey)) return res.json(cache.get(cacheKey));
+
   try {
     const result = [];
 
     for (const league of POPULAR_LEAGUES) {
       try {
         const r = await api.get(`/competitions/${league.code}/standings`);
-        const total = r.data.standings.find(s => s.type === "TOTAL");
+        const total = r.data.standings.find((s) => s.type === "TOTAL");
         if (!total || !total.table.length) continue;
 
         const first = total.table[0];
-
         result.push({
           leagueName: league.name,
           teamName: first.team.name,
           teamLogo: first.team.crest,
           points: first.points,
         });
-      } catch (e) {
-        console.warn(
-          `[side-rankings] ${league.code} skipped:`,
-          e.response?.status,
-          e.response?.data || e.message
-        );
+      } catch {
         continue;
       }
     }
 
+    cache.set(cacheKey, result, 600);
     res.json(result);
   } catch (err) {
-    console.error("Side rankings FATAL ERROR:", err);
+    console.error("Side rankings ERROR:", err);
     res.status(500).json({ error: "Side rankings failed" });
+  }
+});
+
+/* =======================================
+   8) 경기 이벤트 (API-Football)
+======================================= */
+router.get("/match/:id/events", async (req, res) => {
+  const { id } = req.params;
+  const cacheKey = `match-events-bridge-${id}`;
+
+  if (cache.has(cacheKey)) {
+    return res.json(cache.get(cacheKey));
+  }
+
+  try {
+    // 1. football-data.org에서 경기 정보 가져오기
+    const matchDetails = await api.get(`/matches/${id}`);
+    const match = matchDetails.data;
+    const matchDate = match.utcDate.split("T")[0]; // YYYY-MM-DD 형식
+    
+    const homeTeamName = match.homeTeam.name;
+    const awayTeamName = match.awayTeam.name;
+
+    // 2. api-football에서 팀 ID 찾기 (캐시 활용)
+    const findTeamId = async (teamName) => {
+      const teamCacheKey = `apifootball-team-id-${teamName.replace(/\s/g, "")}`;
+      if (cache.has(teamCacheKey)) return cache.get(teamCacheKey);
+      
+      const r = await apiFootball.get("/teams", { params: { name: teamName } });
+      const teams = r.data.response;
+      if (!teams || teams.length === 0) {
+        throw new Error(`Could not find team ID for ${teamName} on api-football`);
+      }
+
+      const exactMatch = teams.find(t => t.team.name.toLowerCase() === teamName.toLowerCase());
+      const team = exactMatch ? exactMatch.team : teams[0]?.team;
+
+      if (!team) throw new Error(`Could not find team ID for ${teamName} on api-football`);
+      
+      cache.set(teamCacheKey, team.id);
+      return team.id;
+    };
+
+    const homeTeamId = await findTeamId(homeTeamName);
+    const awayTeamId = await findTeamId(awayTeamName);
+
+    // 3. api-football에서 경기(fixture) ID 찾기
+    const fixtureCacheKey = `apifootball-fixture-${homeTeamId}-${awayTeamId}-${matchDate}`;
+    let fixtureId;
+
+    if (cache.has(fixtureCacheKey)) {
+      fixtureId = cache.get(fixtureCacheKey);
+    } else {
+      // api-football에서 해당 날짜에 열린 경기를 모두 가져와서 home/away team id가 일치하는 경기를 찾는다.
+      // 이렇게 하면 유스팀 경기 등 관련 없는 경기를 필터링할 수 있다.
+      const fixturesResponse = await apiFootball.get("/fixtures", {
+        params: { date: matchDate, team: homeTeamId },
+      });
+      
+      const foundFixture = fixturesResponse.data.response.find(
+        (f) => f.teams.home.id === homeTeamId && f.teams.away.id === awayTeamId
+      );
+
+      if (foundFixture) {
+        fixtureId = foundFixture.fixture.id;
+      } else {
+        // 만약 homeTeamId로 찾았는데도 경기가 없다면, awayTeamId로 다시 한번 찾아본다.
+        // 데이터 소스에 따라 홈/어웨이가 다르게 기록될 수 있는 엣지 케이스를 대비.
+         const fixturesResponseAway = await apiFootball.get("/fixtures", {
+            params: { date: matchDate, team: awayTeamId },
+         });
+         const foundFixtureAway = fixturesResponseAway.data.response.find(
+            (f) => f.teams.home.id === homeTeamId && f.teams.away.id === awayTeamId
+         );
+         if(foundFixtureAway) {
+            fixtureId = foundFixtureAway.fixture.id;
+         }
+      }
+      
+      if (!fixtureId) {
+        throw new Error(`Could not find fixture on api-football for ${homeTeamName} vs ${awayTeamName} on ${matchDate}`);
+      }
+      cache.set(fixtureCacheKey, fixtureId);
+    }
+
+    // 4. api-football에서 경기 이벤트 가져오기
+    const eventsResponse = await apiFootball.get("/fixtures/events", {
+      params: { fixture: fixtureId },
+    });
+
+    const events = eventsResponse.data.response.map((e) => ({
+      minute: e.time.elapsed,
+      extra: e.time.extra,
+      type: e.type,
+      detail: e.detail,
+      team: e.team.name,
+      player: e.player.name,
+      assist: e.assist?.name || null,
+    }));
+
+    cache.set(cacheKey, events, 600); // 최종 결과 캐시
+    res.json(events);
+
+  } catch (err) {
+    console.error("Match events bridge ERROR:", err.message);
+    res.status(500).json({ error: "Match events fetch failed. " + err.message });
   }
 });
 
