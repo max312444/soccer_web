@@ -34,51 +34,57 @@
       </div>
 
       <!-- 경기 카드 목록 -->
-      <div
-        v-for="match in matches"
-        :key="match.fixture.id"
-        class="match-card"
-        @click="goMatchDetail(match)"
-      >
-        <div class="match-date">
-          {{ formatMatchTime(match.fixture.date) }}
-        </div>
-
-        <div class="match-teams">
-          <div class="team">
-            <img
-              :src="resolvePhoto(match.teams.home.logo)"
-              class="team-logo"
-            />
-            <span>{{ match.teams.home.name }}</span>
+      <div v-if="!selectedMatch">
+        <div
+          v-for="match in matches"
+          :key="match.fixture.id"
+          class="match-card"
+          @click="goMatchDetail(match)"
+        >
+          <div class="match-date">
+            {{ formatMatchTime(match.fixture.date) }}
           </div>
 
-          <span class="vs">
-            <template v-if="match.goals.home !== null">
-              {{ match.goals.home }} : {{ match.goals.away }}
-            </template>
-            <template v-else>vs</template>
-          </span>
+          <div class="match-teams">
+            <div class="team">
+              <img
+                :src="resolvePhoto(match.teams.home.logo)"
+                class="team-logo"
+              />
+              <span>{{ match.teams.home.name }}</span>
+            </div>
 
-          <div class="team">
-            <img
-              :src="resolvePhoto(match.teams.away.logo)"
-              class="team-logo"
-            />
-            <span>{{ match.teams.away.name }}</span>
+            <span class="vs">
+              <template v-if="match.goals.home !== null">
+                {{ match.goals.home }} : {{ match.goals.away }}
+              </template>
+              <template v-else>vs</template>
+            </span>
+
+            <div class="team">
+              <img
+                :src="resolvePhoto(match.teams.away.logo)"
+                class="team-logo"
+              />
+              <span>{{ match.teams.away.name }}</span>
+            </div>
           </div>
         </div>
       </div>
-
+      <div v-else>
+        <div class="back-button-wrapper">
+          <button @click="selectedMatch = null">Back</button>
+        </div>
+        <MatchDetail :id="selectedMatch.fixture.id" />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
+import MatchDetail from "./MatchDetail.vue";
 
-const router = useRouter();
 const API_BASE = "http://localhost:7070";
 
 /* 이미지 URL 처리 */
@@ -92,6 +98,7 @@ const resolvePhoto = (url) => {
 const matches = ref([]);
 const currentWeek = ref(new Date());
 const selectedLeague = ref("");
+const selectedMatch = ref(null);
 
 /* 날짜 처리 */
 const formatDate = (d) => d.toISOString().split("T")[0];
@@ -139,7 +146,7 @@ const onCalendarChange = (e) => {
 
 /* 경기 클릭 → 상세 페이지 이동 */
 const goMatchDetail = (match) => {
-  router.push(`/match/${match.fixture.id}`);
+  selectedMatch.value = match;
 };
 
 /* 경기 일정 로딩 */
@@ -170,6 +177,9 @@ onMounted(fetchMatches);
 </script>
 
 <style scoped>
+.back-button-wrapper {
+  margin-bottom: 1rem;
+}
 .match-wrapper {
   display: flex;
   justify-content: center;

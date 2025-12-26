@@ -62,19 +62,6 @@ watch(accessToken, (token) => {
 
 <template>
   <div class="news-box">
-    <h2>선호 팀 뉴스</h2>
-
-    <p v-if="loading">뉴스를 불러오는 중입니다.</p>
-    <p v-if="errorMsg">{{ errorMsg }}</p>
-
-    <ul v-if="!loading && pinnedNews.length">
-      <li v-for="news in pinnedNews" :key="news.url">
-        <a :href="news.url" target="_blank" rel="noopener">
-          {{ news.title }}
-        </a>
-      </li>
-    </ul>
-
     <h2>전체 뉴스</h2>
 
     <ul v-if="!loading && normalNews.length">

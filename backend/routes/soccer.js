@@ -100,19 +100,45 @@ router.get("/teams", async (req, res) => {
 });
 
 /* =======================================
-   3) 팀 상세
+   3) 팀 상세 (API-Football v3 기준)
 ======================================= */
-router.get("/team/:id", async (req, res) => {
-  const { id } = req.params;
+router.get("/team", async (req, res) => {
+  const { id } = req.query;
   const cacheKey = `team-${id}`;
-  if (cache.has(cacheKey)) return res.json(cache.get(cacheKey));
+
+  if (!id) {
+    return res.status(400).json({ error: "team id is required" });
+  }
+
+  if (cache.has(cacheKey)) {
+    return res.json(cache.get(cacheKey));
+  }
 
   try {
-    const r = await api.get(`/teams/${id}`);
+    const r = await api.get("/teams", {
+      params: { id },
+      headers: {
+        "x-apisports-key": process.env.API_FOOTBALL_KEY,
+      },
+    });
+
+    if (!r.data.response || r.data.response.length === 0) {
+      return res.status(404).json({ error: "team not found" });
+    }
+
+    const data = r.data.response[0];
+
     const team = {
-      id: r.data.id,
-      name: r.data.name,
-      logo: r.data.crest,
+      id: data.team.id,
+      name: data.team.name,
+      country: data.team.country,
+      founded: data.team.founded,
+      logo: data.team.logo,
+      venue: {
+        name: data.venue?.name,
+        city: data.venue?.city,
+        capacity: data.venue?.capacity,
+      },
     };
 
     cache.set(cacheKey, team);
@@ -120,44 +146,6 @@ router.get("/team/:id", async (req, res) => {
   } catch (err) {
     console.error("Team detail ERROR:", err.response?.data || err.message);
     res.status(500).json({ error: "Team detail failed" });
-  }
-});
-
-/* =======================================
-   4) 팀 스쿼드
-======================================= */
-router.get("/team/:id/squad", async (req, res) => {
-  const { id } = req.params;
-  const cacheKey = `squad-${id}`;
-  if (cache.has(cacheKey)) return res.json(cache.get(cacheKey));
-
-  try {
-    const r = await api.get(`/teams/${id}`);
-    const squad = r.data.squad;
-
-    const grouped = { GK: [], DF: [], MF: [], FW: [], UNKNOWN: [] };
-
-    squad.forEach((p) => {
-      const pos = p.position || "UNKNOWN";
-      const photo = `https://media.api-sports.io/football/players/${p.id}.png`;
-
-      const info = {
-        id: p.id,
-        name: p.name,
-        position: pos,
-        nationality: p.nationality,
-        photo,
-      };
-
-      if (grouped[pos]) grouped[pos].push(info);
-      else grouped.UNKNOWN.push(info);
-    });
-
-    cache.set(cacheKey, grouped, 21600);
-    res.json(grouped);
-  } catch (err) {
-    console.error("Squad ERROR:", err.response?.data || err.message);
-    res.status(500).json({ error: "Squad fetch failed" });
   }
 });
 
@@ -319,19 +307,33 @@ router.get("/match/:id/events", async (req, res) => {
 
     // 2. api-football에서 팀 ID 찾기 (캐시 활용)
     const findTeamId = async (teamName) => {
-      const teamCacheKey = `apifootball-team-id-${teamName.replace(/\s/g, "")}`;
-      if (cache.has(teamCacheKey)) return cache.get(teamCacheKey);
-      
-      const r = await apiFootball.get("/teams", { params: { name: teamName } });
-      const teams = r.data.response;
-      if (!teams || teams.length === 0) {
-        throw new Error(`Could not find team ID for ${teamName} on api-football`);
+      const teamNameMapping = {
+        "FC": "",
+        "AFC": "",
+        "United": "",
+        "Hotspur": "Tottenham"
+      };
+
+      let mappedTeamName = teamName;
+      for (const key in teamNameMapping) {
+        if (teamName.includes(key)) {
+          mappedTeamName = teamNameMapping[key] || teamName.replace(key, "").trim();
+        }
       }
 
-      const exactMatch = teams.find(t => t.team.name.toLowerCase() === teamName.toLowerCase());
+      const teamCacheKey = `apifootball-team-id-${mappedTeamName.replace(/\s/g, "")}`;
+      if (cache.has(teamCacheKey)) return cache.get(teamCacheKey);
+      
+      const r = await apiFootball.get("/teams", { params: { name: mappedTeamName } });
+      const teams = r.data.response;
+      if (!teams || teams.length === 0) {
+        throw new Error(`Could not find team ID for ${mappedTeamName} on api-football`);
+      }
+
+      const exactMatch = teams.find(t => t.team.name.toLowerCase() === mappedTeamName.toLowerCase());
       const team = exactMatch ? exactMatch.team : teams[0]?.team;
 
-      if (!team) throw new Error(`Could not find team ID for ${teamName} on api-football`);
+      if (!team) throw new Error(`Could not find team ID for ${mappedTeamName} on api-football`);
       
       cache.set(teamCacheKey, team.id);
       return team.id;

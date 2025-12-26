@@ -14,7 +14,7 @@
       <nav class="main-nav">
         <router-link to="/" class="nav-btn" exact-active-class="active">홈</router-link>
         <router-link to="/rank" class="nav-btn" active-class="active">순위표</router-link>
-        <router-link to="/search" class="nav-btn" active-class="active">팀 / 선수 검색</router-link>
+        <router-link to="/search" class="nav-btn" active-class="active">팀 검색</router-link>
         <router-link to="/match" class="nav-btn" active-class="active">경기 일정</router-link>
         <router-link to="/guide" class="nav-btn" active-class="active">가이드</router-link>
       </nav>

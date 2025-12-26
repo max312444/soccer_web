@@ -1,19 +1,13 @@
 <template>
   <div class="search-container">
-    <h2>팀 / 선수 검색</h2>
+    <h2>팀 검색</h2>
 
     <div class="search-bar">
-      <!-- 검색 타입 선택 -->
-      <select v-model="searchType" class="select-box">
-        <option value="team">팀 검색</option>
-        <option value="player">선수 검색</option>
-      </select>
-
       <!-- 검색 입력 -->
       <input
         v-model="query"
         type="text"
-        placeholder="팀명 또는 선수명을 입력하세요"
+        placeholder="팀명을 입력하세요"
         class="search-input"
       />
 
@@ -93,29 +87,6 @@ const search = async () => {
     }));
 
     finalResults.push(...teamResults);
-  }
-
-  /* =======================
-     2) 선수 검색
-  ======================= */
-  if (searchType.value === "player") {
-    const playerRes = await fetch(
-      `${BASE}/soccer/players?name=${encodeURIComponent(query.value)}`
-    );
-    
-    const playerData = await playerRes.json();
-    const list = Array.isArray(playerData) ? playerData : playerData.response || [];
-
-    finalResults.push(
-      ...list.map(p => ({
-        key: "player-" + p.id,
-        id: p.id,
-        name: p.name,
-        logo: p.logo,
-        sub: `선수 | ${p.team || "소속팀 없음"}`,
-        type: "player"
-      }))
-    );
   }
 
   results.value = finalResults;
