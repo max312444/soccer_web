@@ -100,57 +100,90 @@ router.get("/teams", async (req, res) => {
 });
 
 /* =======================================
-   3) 팀 상세 (API-Football v3 기준)
+   3) 팀 상세 조회 (football-data)
 ======================================= */
-router.get("/team", async (req, res) => {
+router.get("/team/detail", async (req, res) => {
   const { id } = req.query;
-  const cacheKey = `team-${id}`;
 
   if (!id) {
     return res.status(400).json({ error: "team id is required" });
   }
 
+  const cacheKey = `detail-team-${id}`;
   if (cache.has(cacheKey)) {
     return res.json(cache.get(cacheKey));
   }
 
   try {
-    const r = await api.get("/teams", {
-      params: { id },
-      headers: {
-        "x-apisports-key": process.env.API_FOOTBALL_KEY,
+    const r = await api.get(`/teams/${id}`);
+    const t = r.data;
+
+    const detail = {
+      team: {
+        id: t.id,
+        name: t.name,
+        shortName: t.shortName,
+        logo: t.crest,
+        country: t.area?.name,
+        founded: t.founded,
+        website: t.website,
+        clubColors: t.clubColors,
       },
-    });
-
-    if (!r.data.response || r.data.response.length === 0) {
-      return res.status(404).json({ error: "team not found" });
-    }
-
-    const data = r.data.response[0];
-
-    const team = {
-      id: data.team.id,
-      name: data.team.name,
-      country: data.team.country,
-      founded: data.team.founded,
-      logo: data.team.logo,
       venue: {
-        name: data.venue?.name,
-        city: data.venue?.city,
-        capacity: data.venue?.capacity,
+        name: t.venue,
       },
+      competitions: t.runnigCompetitions?.map(c => ({
+        id: c.id,
+        name: c.name,
+        code: c.code,
+      })),
     };
 
-    cache.set(cacheKey, team);
-    res.json(team);
+    cache.set(cacheKey, detail, 1800);
+    res.json(detail);
   } catch (err) {
     console.error("Team detail ERROR:", err.response?.data || err.message);
-    res.status(500).json({ error: "Team detail failed" });
+    res.status(404).json({ error: "team not found" });
   }
 });
 
 /* =======================================
-   5) 순위표
+   3-1) 프로필용 팀 조회 (football-data)
+======================================= */
+router.get("/team/profile", async (req, res) => {
+  const { id } = req.query;
+
+  if (!id) {
+    return res.status(400).json({ error: "team id is required" });
+  }
+
+  const cacheKey = `profile-team-${id}`;
+  if (cache.has(cacheKey)) {
+    return res.json(cache.get(cacheKey));
+  }
+
+  try {
+    const r = await api.get(`/teams/${id}`);
+    const t = r.data;
+
+    const team = {
+      id: t.id,
+      name: t.name,
+      logo: t.crest,
+      country: t.area?.name,
+      founded: t.founded,
+    };
+
+    cache.set(cacheKey, team, 3600);
+    res.json(team);
+  } catch (err) {
+    console.error("Profile team ERROR:", err.response?.data || err.message);
+    res.status(404).json({ error: "team not found" });
+  }
+});
+
+/* =======================================
+   4) 순위표
 ======================================= */
 router.get("/standings", async (req, res) => {
   const { league, season } = req.query;
@@ -190,7 +223,7 @@ router.get("/standings", async (req, res) => {
 });
 
 /* =======================================
-   6) 경기 일정
+   5) 경기 일정
 ======================================= */
 router.get("/matches", async (req, res) => {
   const { from, to, league } = req.query;
@@ -242,7 +275,7 @@ router.get("/matches", async (req, res) => {
 });
 
 /* =======================================
-   7) 사이드바용 리그별 1위
+   6) 사이드바용 리그별 1위
 ======================================= */
 const POPULAR_LEAGUES = [
   { code: "PL", name: "Premier League" },
@@ -286,7 +319,7 @@ router.get("/side-rankings", async (req, res) => {
 });
 
 /* =======================================
-   8) 경기 이벤트 (API-Football)
+   7) 경기 이벤트 (API-Football)
 ======================================= */
 router.get("/match/:id/events", async (req, res) => {
   const { id } = req.params;

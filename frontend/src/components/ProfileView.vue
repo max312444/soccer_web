@@ -1,72 +1,101 @@
 <template>
   <div class="profile-container">
     <h3>내 프로필</h3>
-    <div v-if="loading" class="loading">프로필 정보를 불러오는 중...</div>
-    <div v-else-if="error" class="error">{{ error }}</div>
+
+    <div v-if="loading" class="loading">
+      프로필 정보를 불러오는 중...
+    </div>
+
+    <div v-else-if="error" class="error">
+      {{ error }}
+    </div>
+
     <div v-else class="profile-content">
       <div class="profile-item">
         <span class="label">아이디:</span>
         <span>{{ user.username }}</span>
       </div>
+
       <div class="profile-item">
         <span class="label">이름:</span>
         <span>{{ user.name }}</span>
       </div>
+
       <div class="profile-item club-item">
         <span class="label">선호 구단:</span>
+
         <div v-if="teamLogo" class="club-info">
-          <img :src="teamLogo" alt="club logo" class="club-logo" />
+          <img
+            :src="teamLogo"
+            alt="club logo"
+            class="club-logo"
+          />
           <span>{{ user.preferred_club_name }}</span>
         </div>
+
+        <div v-else class="club-info">
+          <span>구단 정보 없음</span>
+        </div>
       </div>
-      <button @click="handleLogout" class="logout-btn">로그아웃</button>
+
+      <button @click="handleLogout" class="logout-btn">
+        로그아웃
+      </button>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { useAuthStore } from '@/stores/auth';
+import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 
-const authStore = useAuthStore();
-const router = useRouter();
+const authStore = useAuthStore()
+const router = useRouter()
 
-const user = authStore.user;
-const teamLogo = ref('');
-const loading = ref(true);
-const error = ref(null);
+const user = authStore.user
+const teamLogo = ref('')
+const loading = ref(true)
+const error = ref(null)
 
 const fetchTeamLogo = async () => {
+  // 선호 구단이 없는 경우
   if (!user?.preferred_club_id) {
-    loading.value = false;
-    return;
+    loading.value = false
+    return
   }
+
   try {
-    const res = await fetch(`http://localhost:7070/api/soccer/team/${user.preferred_club_id}`);
-    if (!res.ok) throw new Error('구단 정보를 불러오지 못했습니다.');
-    
-    const data = await res.json();
+    const res = await fetch(
+      `/api/soccer/team/profile?id=${user.preferred_club_id}`
+    )
+
+    if (!res.ok) {
+      throw new Error('구단 정보를 불러오지 못했습니다.')
+    }
+
+    const data = await res.json()
+
     if (data && data.logo) {
-      teamLogo.value = data.logo;
+      teamLogo.value = data.logo
     } else {
-      throw new Error('구단 로고 정보가 없습니다.');
+      throw new Error('구단 로고 정보가 없습니다.')
     }
   } catch (err) {
-    console.error(err);
-    error.value = err.message;
+    console.error('Profile team fetch error:', err)
+    error.value = err.message
   } finally {
-    loading.value = false;
+    loading.value = false
   }
-};
+}
 
 const handleLogout = () => {
-  authStore.logout();
-  alert('로그아웃 되었습니다.');
-  router.push('/');
-};
+  authStore.logout()
+  alert('로그아웃 되었습니다.')
+  router.push('/')
+}
 
-onMounted(fetchTeamLogo);
+onMounted(fetchTeamLogo)
 </script>
 
 <style scoped>
@@ -79,6 +108,7 @@ onMounted(fetchTeamLogo);
   color: white;
   text-align: center;
 }
+
 .profile-content {
   display: flex;
   flex-direction: column;
@@ -86,29 +116,35 @@ onMounted(fetchTeamLogo);
   text-align: left;
   margin-top: 20px;
 }
+
 .profile-item {
   display: flex;
   align-items: center;
   font-size: 1.1em;
 }
+
 .label {
   font-weight: bold;
   color: #888;
   width: 100px;
 }
+
 .club-item .label {
   align-self: flex-start;
   margin-top: 5px;
 }
+
 .club-info {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+
 .club-logo {
   width: 30px;
   height: 30px;
 }
+
 .logout-btn {
   margin-top: 20px;
   padding: 10px;
@@ -120,7 +156,9 @@ onMounted(fetchTeamLogo);
   cursor: pointer;
   width: 100%;
 }
-.loading, .error {
+
+.loading,
+.error {
   padding: 20px;
   color: #aaa;
 }

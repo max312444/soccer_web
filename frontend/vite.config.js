@@ -16,10 +16,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/soccer": {
+      "/api": {
         target: "http://localhost:7070",
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/soccer/, "/api/soccer"),
       }
     }
   }
