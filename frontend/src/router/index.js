@@ -57,4 +57,24 @@ const router = createRouter({
   routes
 })
 
+/* 로그인 여부 확인 */
+router.beforeEach((to, from, next) => {
+  const userId = localStorage.getItem('username')
+
+  // 홈, 로그인 페이지는 제외
+  if (to.path === '/' || to.path === '/login') {
+    next()
+    return
+  }
+
+  // 로그인 안 됐으면 차단
+  if (!username) {
+    alert('로그인이 필요한 서비스입니다.')
+    next('/')
+    return
+  }
+
+  next()
+})
+
 export default router

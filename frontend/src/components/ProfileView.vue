@@ -46,28 +46,43 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const authStore = useAuthStore()
 const router = useRouter()
 
-const user = authStore.user
+const user = computed(() => authStore.user)
+const isLoggedIn = computed(() => authStore.isLoggedIn)
+const token = computed(() => authStore.token)
+
 const teamLogo = ref('')
 const loading = ref(true)
 const error = ref(null)
 
 const fetchTeamLogo = async () => {
-  // 선호 구단이 없는 경우
-  if (!user?.preferred_club_id) {
+  if (!isLoggedIn.value || !token.value) {
+    loading.value = false
+    return
+  }
+
+  if (!user.value?.preferred_club_id) {
     loading.value = false
     return
   }
 
   try {
+    loading.value = true
+    error.value = null
+
     const res = await fetch(
-      `/api/soccer/team/profile?id=${user.preferred_club_id}`
+      `/api/soccer/team/profile?id=${user.value.preferred_club_id}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token.value}`,
+        },
+      }
     )
 
     if (!res.ok) {
@@ -75,15 +90,11 @@ const fetchTeamLogo = async () => {
     }
 
     const data = await res.json()
-
-    if (data && data.logo) {
-      teamLogo.value = data.logo
-    } else {
-      throw new Error('구단 로고 정보가 없습니다.')
-    }
+    teamLogo.value = data?.logo || ''
   } catch (err) {
     console.error('Profile team fetch error:', err)
     error.value = err.message
+    teamLogo.value = ''
   } finally {
     loading.value = false
   }
@@ -91,11 +102,24 @@ const fetchTeamLogo = async () => {
 
 const handleLogout = () => {
   authStore.logout()
-  alert('로그아웃 되었습니다.')
+  teamLogo.value = ''
   router.push('/')
 }
 
-onMounted(fetchTeamLogo)
+onMounted(() => {
+  if (isLoggedIn.value && token.value) {
+    fetchTeamLogo()
+  }
+})
+
+watch(token, (newToken) => {
+  if (newToken && isLoggedIn.value) {
+    fetchTeamLogo()
+  } else {
+    teamLogo.value = ''
+    loading.value = false
+  }
+})
 </script>
 
 <style scoped>

@@ -34,12 +34,31 @@ const isLoggedIn = computed(() => authStore.isLoggedIn)
 
     <!-- 중앙 -->
     <main class="main-panel">
-      <HomeNews />
+      <template v-if="isLoggedIn">
+        <HomeNews />
+      </template>
+
+      <template v-else>
+        <div class="login-required">
+          <p>로그인이 필요한 서비스입니다.</p>
+          <p class="sub">
+            로그인 후 최신 축구 뉴스와 리그 정보를 확인하세요.
+          </p>
+        </div>
+      </template>
     </main>
 
     <!-- 오른쪽 -->
     <aside class="right-panel">
-      <SideRanking />
+      <template v-if="isLoggedIn">
+        <SideRanking />
+      </template>
+
+      <template v-else>
+        <div class="login-required">
+          <p>로그인 후 확인 가능합니다.</p>
+        </div>
+      </template>
     </aside>
 
   </div>

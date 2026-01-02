@@ -11,12 +11,15 @@ module.exports = function authenticate(req, res, next) {
   }
 
   const token = authHeader.split(" ")[1];
+  if (!token) {
+    return res.status(401).json({ error: "토큰 형식이 올바르지 않습니다." });
+  }
 
   try {
     const decoded = jwt.verify(token, JWT_ACCESS_SECRET);
 
-    // ✅ 여기서 req.user를 세팅해야 함
     req.user = {
+      username: decoded.username,
       id: decoded.id,
       email: decoded.email,
       favorite_team: decoded.favorite_team,

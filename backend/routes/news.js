@@ -28,12 +28,11 @@ const fetchRssNews = async () => {
   }));
 };
 
-// 🔥 authenticate 제거
-router.get("/", async (req, res) => {
+router.get("/", authenticate, async (req, res) => {
   try {
     const now = Date.now();
 
-    // 캐시
+    // 로그인 사용자만 캐시 갱신 로직 실행
     if (!newsCache.data || now - newsCache.fetchedAt > TTL) {
       const articles = await fetchRssNews();
       newsCache = {
@@ -42,27 +41,12 @@ router.get("/", async (req, res) => {
       };
     }
 
-    // 🔥 토큰이 있으면 사용자 정보만 선택적으로 파싱
-    let user = null;
-    const authHeader = req.headers.authorization;
-
-    if (authHeader?.startsWith("Bearer ")) {
-      try {
-        const fakeReq = { headers: { authorization: authHeader } };
-        authenticate(fakeReq, {}, () => {
-          user = fakeReq.user;
-        });
-      } catch {
-        user = null;
-      }
-    }
-
-    const favoriteTeam = user?.favorite_team;
+    const favoriteTeam = req.user?.favorite_team || null;
 
     let pinned = [];
     let rest = [...newsCache.data];
 
-    // 선호 팀 뉴스 필터링 (로그인 한 경우만)
+    // 선호 팀 뉴스 (로그인 사용자만 가능)
     if (favoriteTeam) {
       const keyword = favoriteTeam.toLowerCase();
 

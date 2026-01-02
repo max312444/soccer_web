@@ -1,16 +1,28 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
+const isLoggedIn = computed(() => authStore.isLoggedIn)
+const token = computed(() => authStore.token)
 
 const rankings = ref([])
 const loading = ref(false)
 const errorMsg = ref('')
 
 const fetchSideRankings = async () => {
+  if (!isLoggedIn.value || !token.value) return
+
   try {
     loading.value = true
     errorMsg.value = ''
 
-    const res = await fetch("http://localhost:7070/api/soccer/side-rankings")
+    const res = await fetch('http://localhost:7070/api/soccer/side-rankings', {
+      headers: {
+        Authorization: `Bearer ${token.value}`,
+      },
+    })
+
     if (!res.ok) {
       throw new Error('사이드 랭킹 요청 실패')
     }
@@ -26,7 +38,18 @@ const fetchSideRankings = async () => {
 }
 
 onMounted(() => {
-  fetchSideRankings()
+  if (isLoggedIn.value && token.value) {
+    fetchSideRankings()
+  }
+})
+
+// 로그인 후 토큰이 세팅되는 타이밍 대응
+watch(token, (newToken) => {
+  if (newToken && isLoggedIn.value) {
+    fetchSideRankings()
+  } else {
+    rankings.value = []
+  }
 })
 </script>
 
@@ -35,9 +58,10 @@ onMounted(() => {
     <h3>리그별 1위 팀</h3>
 
     <p v-if="loading">랭킹 불러오는 중...</p>
-    <p v-if="errorMsg">{{ errorMsg }}</p>
+    <p v-else-if="errorMsg">{{ errorMsg }}</p>
+    <p v-else-if="!isLoggedIn">로그인이 필요합니다.</p>
 
-    <ul v-if="!loading && rankings.length">
+    <ul v-else-if="rankings.length">
       <li v-for="item in rankings" :key="item.leagueName">
         <div class="league">{{ item.leagueName }}</div>
         <div class="team">
@@ -49,6 +73,7 @@ onMounted(() => {
     </ul>
   </div>
 </template>
+
 
 <style scoped>
 .ranking-box {

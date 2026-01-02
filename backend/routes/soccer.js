@@ -3,8 +3,12 @@ const router = express.Router();
 const axios = require("axios");
 const NodeCache = require("node-cache");
 
+const authenticate = require("../lib/auth");
+
 const cache = new NodeCache({ stdTTL: 3600 });
 console.log("soccerRouter loaded with caching!");
+
+router.use(authenticate);
 
 /* =======================================
    FOOTBALL-DATA API 설정
