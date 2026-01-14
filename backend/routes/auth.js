@@ -11,6 +11,7 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET;
 // 1. 회원가입
 router.post("/signup", async (req, res) => {
   const { username, password, name, preferred_club_id, preferred_club_name } = req.body;
+  const clubId = preferred_club_id ? parseInt(preferred_club_id, 10) : null;
 
   try {
     // 아이디 중복 체크
@@ -29,7 +30,7 @@ router.post("/signup", async (req, res) => {
     // DB 저장
     await pool.query(
       "INSERT INTO users (username, password, name, preferred_club_id, preferred_club_name) VALUES (?, ?, ?, ?, ?)",
-      [username, hashed, name, preferred_club_id, preferred_club_name]
+      [username, hashed, name, clubId, preferred_club_name]
     );
 
     return res.json({ message: "회원가입 성공" });

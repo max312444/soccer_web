@@ -70,6 +70,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { apiFetch } from "@/utils/apiFetch";
 
 const route = useRoute();
 const router = useRouter();
@@ -88,10 +89,7 @@ onMounted(async () => {
     const id = route.params.id;
     if (!id) throw new Error("team id가 없습니다");
 
-    const res = await fetch(`/api/soccer/team/detail?id=${id}`);
-    if (!res.ok) throw new Error("팀 정보 요청 실패");
-
-    const data = await res.json();
+    const data = await apiFetch(`/soccer/team/detail?id=${id}`);
 
     team.value = {
       ...data.team,

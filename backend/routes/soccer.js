@@ -72,15 +72,33 @@ router.get("/competition", async (req, res) => {
 ======================================= */
 router.get("/teams", async (req, res) => {
   const name = (req.query.name || "").toLowerCase();
-  const cacheKey = `teams-${name}`;
-  if (cache.has(cacheKey)) return res.json(cache.get(cacheKey));
+  const context = req.query.context;
+
+  // 로그인 예외는 회원가입 컨텍스트에서만 허용
+  if (!req.user && context !== "signup") {
+    return res.status(401).json({ error: "로그인이 필요합니다." });
+  }
+
+  // 회원가입 컨텍스트 제한 (리소스 보호)
+  if (context === "signup" && name.length < 2) {
+    return res.status(400).json({
+      error: "검색어는 2자 이상 입력해주세요.",
+    });
+  }
+
+  const cacheKey = `teams-${context || "auth"}-${name}`;
+  if (cache.has(cacheKey)) {
+    return res.json(cache.get(cacheKey));
+  }
 
   try {
     let allTeams = [];
 
     for (const code of COMMON_LEAGUE_CODES) {
       const r = await api.get(`/competitions/${code}/teams`);
-      if (r.data?.teams) allTeams.push(...r.data.teams);
+      if (r.data?.teams) {
+        allTeams.push(...r.data.teams);
+      }
     }
 
     const filtered = allTeams.filter(
@@ -102,6 +120,7 @@ router.get("/teams", async (req, res) => {
     res.status(500).json({ error: "Team search failed" });
   }
 });
+
 
 /* =======================================
    3) 팀 상세 조회 (football-data)
@@ -221,7 +240,7 @@ router.get("/standings", async (req, res) => {
     cache.set(cacheKey, standings, 300);
     res.json(standings);
   } catch (err) {
-    console.error("Standings ERROR:", err.response?.data || err.message);
+    console.error("Standings ERROR:", err);
     res.status(500).json({ error: "Standings fetch failed" });
   }
 });
@@ -273,7 +292,7 @@ router.get("/matches", async (req, res) => {
     cache.set(cacheKey, matches, 600);
     res.json(matches);
   } catch (err) {
-    console.error("Matches ERROR:", err.response?.data || err.message);
+    console.error("Matches ERROR:", err);
     res.status(500).json({ error: "Matches load failed" });
   }
 });

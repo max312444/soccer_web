@@ -7,7 +7,7 @@ const pool = mysql.createPool({
   password: 'soccer123',
   database: 'soccer_db',
   waitForConnections: true,
-  connectionLimit: 10
+  connectionLimit: 10,
 });
 
 module.exports = pool;

@@ -1,18 +1,22 @@
-import { useAuthStore } from "@/stores/auth";
+import { useAuthStore } from '@/stores/auth'
 
-export async function apiFetch(url, option = {}) {
+// 백엔드 API 주소 (중요)
+const BASE_URL = 'http://localhost:7070/api'
+
+export async function apiFetch(path, options = {}) {
   const authStore = useAuthStore()
   const token = authStore.token
-  
+
   const headers = {
-    ...apiFetch(options.headers || {}),
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
   }
 
   if (token) {
     headers.Authorization = `Bearer ${token}`
   }
 
-  const res = await fetch(url, {
+  const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     headers,
   })
@@ -23,8 +27,8 @@ export async function apiFetch(url, option = {}) {
   }
 
   if (!res.ok) {
-    const text = await res.text()
-    throw new Error(text || '요청 실패')
+    const errorMessage = await res.text()
+    throw new Error(errorMessage || '요청 실패')
   }
 
   return res.json()

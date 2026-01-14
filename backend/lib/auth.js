@@ -6,6 +6,12 @@ const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET;
 module.exports = function authenticate(req, res, next) {
   const authHeader = req.headers.authorization;
 
+  // ✅ 회원가입 컨텍스트 예외 허용
+  // 선호 구단 검색에서만 사용
+  if (!authHeader && req.query.context === "signup") {
+    return next();
+  }
+
   if (!authHeader) {
     return res.status(401).json({ error: "토큰이 없습니다." });
   }

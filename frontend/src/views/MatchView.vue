@@ -48,7 +48,7 @@
           <div class="match-teams">
             <div class="team">
               <img
-                :src="resolvePhoto(match.teams.home.logo)"
+                :src="match.teams.home.logo"
                 class="team-logo"
               />
               <span>{{ match.teams.home.name }}</span>
@@ -63,7 +63,7 @@
 
             <div class="team">
               <img
-                :src="resolvePhoto(match.teams.away.logo)"
+                :src="match.teams.away.logo"
                 class="team-logo"
               />
               <span>{{ match.teams.away.name }}</span>
@@ -84,15 +84,7 @@
 <script setup>
 import { ref, onMounted } from "vue";
 import MatchDetail from "./MatchDetail.vue";
-
-const API_BASE = "http://localhost:7070";
-
-/* 이미지 URL 처리 */
-const resolvePhoto = (url) => {
-  if (!url) return "";
-  if (url.startsWith("http")) return url;
-  return `${API_BASE}${url}`;
-};
+import { apiFetch } from "@/utils/apiFetch";
 
 /* 상태값 */
 const matches = ref([]);
@@ -161,12 +153,9 @@ const fetchMatches = async () => {
   const to = formatDate(end);
 
   try {
-    const url = selectedLeague.value
-      ? `${API_BASE}/api/soccer/matches?from=${from}&to=${to}&league=${selectedLeague.value}`
-      : `${API_BASE}/api/soccer/matches?from=${from}&to=${to}`;
-
-    const res = await fetch(url);
-    matches.value = await res.json();
+    const leagueQuery = selectedLeague.value ? `&league=${selectedLeague.value}` : '';
+    const url = `/soccer/matches?from=${from}&to=${to}${leagueQuery}`;
+    matches.value = await apiFetch(url);
   } catch (err) {
     console.error("경기 일정 로딩 실패:", err);
   }

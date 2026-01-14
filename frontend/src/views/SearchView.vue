@@ -41,8 +41,7 @@
 <script setup>
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-
-const BASE = "http://localhost:7070/api";
+import { apiFetch } from "@/utils/apiFetch";
 
 const router = useRouter();
 
@@ -70,11 +69,10 @@ const search = async () => {
      1) 팀 검색
   ======================= */
   if (searchType.value === "team") {
-    const teamRes = await fetch(
-      `${BASE}/soccer/teams?name=${encodeURIComponent(query.value)}`
+    const teamData = await apiFetch(
+      `/soccer/teams?name=${encodeURIComponent(query.value)}`
     );
     
-    const teamData = await teamRes.json();
     const list = Array.isArray(teamData) ? teamData : teamData.response || [];
 
     const teamResults = list.map(t => ({

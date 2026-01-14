@@ -48,6 +48,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { apiFetch } from '@/utils/apiFetch';
 
 const standings = ref(null);
 const loading = ref(true);
@@ -77,13 +78,9 @@ const loadCurrentSeason = async () => {
   loading.value = true;
 
   try {
-    const res = await fetch(
-      `http://localhost:7070/api/soccer/competition?league=${selectedLeague.value}`
+    const data = await apiFetch(
+      `/soccer/competition?league=${selectedLeague.value}`
     );
-
-    if (!res.ok) throw new Error("현재 시즌 정보를 가져오지 못했습니다.");
-
-    const data = await res.json();
 
     // 현재 시즌 연도 추출
     const startYear = Number(data.currentSeason.startDate.split("-")[0]);
@@ -111,13 +108,9 @@ const fetchStandings = async () => {
   error.value = null;
 
   try {
-    const res = await fetch(
-      `http://localhost:7070/api/soccer/standings?league=${selectedLeague.value}&season=${selectedSeason.value}`
+    const data = await apiFetch(
+      `/soccer/standings?league=${selectedLeague.value}&season=${selectedSeason.value}`
     );
-
-    if (!res.ok) throw new Error("순위 정보를 가져오지 못했습니다.");
-
-    const data = await res.json();
 
     if (!Array.isArray(data) || data.length === 0) {
       throw new Error("해당 시즌의 순위 정보가 없습니다.");
