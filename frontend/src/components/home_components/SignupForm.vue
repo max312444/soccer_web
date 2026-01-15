@@ -149,14 +149,12 @@ onUnmounted(() => {
 /* 배경 어둡게 (팝업 효과) */
 .overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  inset: 0;
   background: rgba(0, 0, 0, 0.4);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  padding-top: 80px;
 }
 
 /* 회원가입 박스 */
