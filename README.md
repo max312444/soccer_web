@@ -25,18 +25,17 @@
 
 # サッカー情報掲示板 Web アプリケーション
 
-▶️ 実行デモ動画
+実行デモ動画
 
 <iframe
   width="100%"
   height="400"
-  src="[https://www.youtube.com/embed/XXXXXXXX?autoplay=1&mute=1](https://www.youtube.com/watch?v=WJExSPi3klg)"
+  src="https://www.youtube.com/embed/WJExSPi3klg?autoplay=1&mute=1"
   title="実行デモ動画"
   frameborder="0"
   allow="autoplay; encrypted-media"
   allowfullscreen>
 </iframe>
-
 
 ---
 
