@@ -23,6 +23,16 @@
 
 ---
 
+# サッカー情報掲示板 Web アプリケーション
+
+▶️ 実行デモ動画  
+[https://www.youtube.com/watch?v=XXXXXXXX](https://www.youtube.com/watch?v=WJExSPi3klg)
+
+本プロジェクトは、サッカーをテーマとした  
+情報提供型の掲示板 Web アプリケーションです。
+
+---
+
 ## ユーザー利用フロー
 
 1. 会員登録  
