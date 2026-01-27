@@ -25,17 +25,11 @@
 
 # サッカー情報掲示板 Web アプリケーション
 
-実行デモ動画
+## ▶️ 実行デモ動画
+[![実行デモ動画](https://img.youtube.com/vi/WJExSPi3klg/0.jpg)](https://www.youtube.com/watch?v=WJExSPi3klg)
 
-<iframe
-  width="100%"
-  height="400"
-  src="https://www.youtube.com/embed/WJExSPi3klg?autoplay=1&mute=1"
-  title="実行デモ動画"
-  frameborder="0"
-  allow="autoplay; encrypted-media"
-  allowfullscreen>
-</iframe>
+本プロジェクトは、サッカーをテーマとした  
+情報提供型の掲示板 Web アプリケーションです。
 
 ---
 
